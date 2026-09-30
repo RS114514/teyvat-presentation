@@ -1,0 +1,1138 @@
+/* ==========================================================================
+   《原神》大屏交互课件 · 专属视觉特效转场样式库 (Genshin Cinematic Transitions)
+   文件: module_transitions.css
+   架构: 双缓冲平滑视窗体系 (Double-Buffered Viewport System) + Mix-Blend-Mode Screen 滤色转场矩阵
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 双缓冲 DOM 视窗与平滑位移变换规范
+   -------------------------------------------------------------------------- */
+.deck-viewport {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* 当前视窗层 */
+.deck-viewport-current {
+  opacity: 1;
+  z-index: 20;
+  pointer-events: auto;
+  transform: scale(1) translate3d(0, 0, 0);
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 换页缓冲视窗层 */
+.deck-viewport-incoming {
+  opacity: 0;
+  z-index: 10;
+  pointer-events: none;
+  transform: scale(1.04) translate3d(30px, 0, -30px);
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 平滑退场态 (正向) */
+.deck-viewport-exit-forward {
+  opacity: 0 !important;
+  transform: scale(0.96) translate3d(-35px, 0, -30px) !important;
+  pointer-events: none !important;
+}
+
+/* 平滑退场态 (反向) */
+.deck-viewport-exit-backward {
+  opacity: 0 !important;
+  transform: scale(0.96) translate3d(35px, 0, -30px) !important;
+  pointer-events: none !important;
+}
+
+/* 平滑进场态 (进入目标) */
+.deck-viewport-enter-active {
+  opacity: 1 !important;
+  transform: scale(1) translate3d(0, 0, 0) !important;
+  pointer-events: auto !important;
+}
+
+/* 内容卡片交错入场动画 (Stagger Reveal) */
+.stagger-in {
+  animation: staggerItemIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes staggerItemIn {
+  from {
+    opacity: 0;
+    transform: translate3d(-20px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* 屏幕震颤动效 (天星砸落 / 破冰爆发) */
+.screen-shake {
+  animation: seewoScreenShake 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes seewoScreenShake {
+  10%, 90% { transform: translate3d(-4px, 2px, 0); }
+  20%, 80% { transform: translate3d(5px, -3px, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 4px, 0); }
+  40%, 60% { transform: translate3d(6px, -2px, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   2. 视觉特效层基础容器与通用配置
+   -------------------------------------------------------------------------- */
+#genshin-transitions-layer-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 85;
+  overflow: hidden;
+}
+
+.cinematic-trans-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  pointer-events: none;
+  opacity: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  will-change: opacity, transform;
+  transition: opacity 0.22s ease-out;
+}
+
+.cinematic-trans-layer.active {
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   3. 专属转场矩阵 01：提瓦特 -> 蒙德 (千风阵列 · 风刃割裂与羽毛风起席卷)
+   -------------------------------------------------------------------------- */
+#trans-wind {
+  background: transparent;
+}
+
+#trans-wind .wind-crest-symbol {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 35px #34e5a7) drop-shadow(0 0 70px #34e5a7);
+}
+
+#trans-wind.active .wind-crest-symbol {
+  animation: anemoCrestBloom 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-wind .wind-blade-cross-1,
+#trans-wind .wind-blade-cross-2,
+#trans-wind .wind-blade-cross-3 {
+  position: absolute;
+  width: 170vw;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
+
+#trans-wind .wind-blade-cross-1 {
+  height: 20px;
+  background: linear-gradient(90deg, transparent 0%, rgba(52, 229, 167, 0.25) 15%, #34e5a7 45%, #ffffff 50%, #34e5a7 55%, rgba(52, 229, 167, 0.25) 85%, transparent 100%);
+  box-shadow: 0 0 45px #34e5a7, 0 0 90px #34e5a7, 0 0 130px #ffffff;
+  transform: rotate(-32deg);
+}
+
+#trans-wind.active .wind-blade-cross-1 {
+  animation: anemoSlash1 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-wind .wind-blade-cross-2 {
+  height: 14px;
+  background: linear-gradient(90deg, transparent 0%, rgba(45, 212, 191, 0.25) 15%, #2dd4bf 45%, #ffffff 50%, #2dd4bf 55%, rgba(45, 212, 191, 0.25) 85%, transparent 100%);
+  box-shadow: 0 0 35px #2dd4bf, 0 0 70px #2dd4bf;
+  transform: rotate(35deg);
+}
+
+#trans-wind.active .wind-blade-cross-2 {
+  animation: anemoSlash2 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-wind .wind-blade-cross-3 {
+  height: 10px;
+  background: linear-gradient(90deg, transparent 0%, #a7f3d0 45%, #ffffff 50%, #a7f3d0 55%, transparent 100%);
+  box-shadow: 0 0 30px #6ee7b7;
+  transform: rotate(-8deg);
+}
+
+#trans-wind.active .wind-blade-cross-3 {
+  animation: anemoSlash3 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 蒙德羽毛粒子群独立容器与定位 */
+#trans-wind .anemo-feathers-cluster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#trans-wind .anemo-feather-item {
+  position: absolute;
+  opacity: 0;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 14px #34e5a7);
+}
+
+#trans-wind.active .anemo-feather-item:nth-child(1) {
+  left: 12%; top: 78%;
+  animation: featherFloat1 0.82s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+#trans-wind.active .anemo-feather-item:nth-child(2) {
+  left: 26%; top: 84%;
+  animation: featherFloat2 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.03s forwards;
+}
+#trans-wind.active .anemo-feather-item:nth-child(3) {
+  left: 42%; top: 72%;
+  animation: featherFloat1 0.80s cubic-bezier(0.16, 1, 0.3, 1) 0.06s forwards;
+}
+#trans-wind.active .anemo-feather-item:nth-child(4) {
+  left: 58%; top: 88%;
+  animation: featherFloat2 0.86s cubic-bezier(0.16, 1, 0.3, 1) 0.04s forwards;
+}
+#trans-wind.active .anemo-feather-item:nth-child(5) {
+  left: 74%; top: 68%;
+  animation: featherFloat1 0.84s cubic-bezier(0.16, 1, 0.3, 1) 0.08s forwards;
+}
+#trans-wind.active .anemo-feather-item:nth-child(6) {
+  left: 86%; top: 76%;
+  animation: featherFloat2 0.88s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
+}
+
+@keyframes anemoCrestBloom {
+  0% { transform: scale(0.2) rotate(0deg); opacity: 0; filter: drop-shadow(0 0 0 #34e5a7); }
+  45% { transform: scale(1.35) rotate(160deg); opacity: 1; filter: drop-shadow(0 0 75px #34e5a7); }
+  100% { transform: scale(2.8) rotate(320deg); opacity: 0; filter: drop-shadow(0 0 110px #34e5a7); }
+}
+
+@keyframes anemoSlash1 {
+  0% { transform: rotate(-32deg) translateX(-100vw); opacity: 0; }
+  25% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: rotate(-32deg) translateX(100vw); opacity: 0; }
+}
+
+@keyframes anemoSlash2 {
+  0% { transform: rotate(35deg) translateX(100vw); opacity: 0; }
+  25% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: rotate(35deg) translateX(-100vw); opacity: 0; }
+}
+
+@keyframes anemoSlash3 {
+  0% { transform: rotate(-8deg) translateX(-90vw); opacity: 0; }
+  30% { opacity: 1; }
+  65% { opacity: 1; }
+  100% { transform: rotate(-8deg) translateX(90vw); opacity: 0; }
+}
+
+@keyframes featherFloat1 {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate3d(35vw, -80vh, 0) rotate(240deg) scale(1.4); opacity: 0; }
+}
+
+@keyframes featherFloat2 {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.7); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate3d(42vw, -88vh, 0) rotate(-280deg) scale(1.5); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   4. 专属转场矩阵 02：蒙德 -> 璃月 (钟离大招天星下坠 · 护盾纹理震颤碎裂)
+   -------------------------------------------------------------------------- */
+#trans-rock {
+  background: transparent;
+}
+
+#trans-rock .rock-meteor-monolith {
+  position: absolute;
+  width: 280px;
+  height: 540px;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+  opacity: 0;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 50px #f59e0b) drop-shadow(0 0 90px #f4c053);
+}
+
+#trans-rock.active .rock-meteor-monolith {
+  animation: geoMeteorFall 0.78s cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+}
+
+#trans-rock .rock-meteor-core {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #ffffff 0%, #fef08a 25%, #f4c053 55%, #b45309 85%, transparent 100%);
+  box-shadow: 0 0 100px #f4c053, 0 0 200px #f59e0b, 0 0 280px rgba(245, 158, 11, 0.85);
+  border-radius: 50%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+#trans-rock.active .rock-meteor-core {
+  animation: geoImpactCore 0.78s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+#trans-rock .rock-hex-shield-grid {
+  position: absolute;
+  width: 680px;
+  height: 680px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 45px #f4c053) drop-shadow(0 0 90px #f59e0b);
+}
+
+#trans-rock.active .rock-hex-shield-grid {
+  animation: geoHexGridPulse 0.78s ease-out forwards;
+}
+
+/* 碎岩迸发独立容器 */
+#trans-rock .rock-shards-cluster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#trans-rock .rock-fracture-shard {
+  position: absolute;
+  opacity: 0;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 20px #f59e0b);
+}
+
+#trans-rock.active .rock-fracture-shard:nth-child(1) { animation: geoShardBurst1 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.20s forwards; }
+#trans-rock.active .rock-fracture-shard:nth-child(2) { animation: geoShardBurst2 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.21s forwards; }
+#trans-rock.active .rock-fracture-shard:nth-child(3) { animation: geoShardBurst3 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.22s forwards; }
+#trans-rock.active .rock-fracture-shard:nth-child(4) { animation: geoShardBurst4 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.23s forwards; }
+#trans-rock.active .rock-fracture-shard:nth-child(5) { animation: geoShardBurst5 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.24s forwards; }
+#trans-rock.active .rock-fracture-shard:nth-child(6) { animation: geoShardBurst6 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards; }
+
+@keyframes geoMeteorFall {
+  0% { transform: translate3d(0, -95vh, 0) scale(0.35) rotate(-15deg); opacity: 0; }
+  35% { opacity: 1; }
+  52% { transform: translate3d(0, 0, 0) scale(1.20) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 90px #f4c053); }
+  100% { transform: translate3d(0, 24vh, 0) scale(2.5) rotate(8deg); opacity: 0; filter: drop-shadow(0 0 140px #f59e0b); }
+}
+
+@keyframes geoImpactCore {
+  0% { transform: translate3d(0, -75vh, 0) scale(0.3); opacity: 0; }
+  48% { transform: translate3d(0, 0, 0) scale(1.35); opacity: 1; }
+  100% { transform: translate3d(0, 16vh, 0) scale(3.2); opacity: 0; }
+}
+
+@keyframes geoHexGridPulse {
+  0% { transform: scale(0.4) rotate(0deg); opacity: 0; }
+  45% { transform: scale(1.25) rotate(30deg); opacity: 1; filter: drop-shadow(0 0 50px #f4c053); }
+  100% { transform: scale(2.3) rotate(60deg); opacity: 0; }
+}
+
+@keyframes geoShardBurst1 { 0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 1; } 100% { transform: translate3d(-24vw, -28vh, 0) rotate(-160deg) scale(1.2); opacity: 0; } }
+@keyframes geoShardBurst2 { 0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 1; } 100% { transform: translate3d(25vw, -30vh, 0) rotate(180deg) scale(1.3); opacity: 0; } }
+@keyframes geoShardBurst3 { 0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 1; } 100% { transform: translate3d(-30vw, 18vh, 0) rotate(-110deg) scale(1.1); opacity: 0; } }
+@keyframes geoShardBurst4 { 0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 1; } 100% { transform: translate3d(32vw, 20vh, 0) rotate(130deg) scale(1.2); opacity: 0; } }
+@keyframes geoShardBurst5 { 0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 1; } 100% { transform: translate3d(0, -36vh, 0) rotate(200deg) scale(1.1); opacity: 0; } }
+@keyframes geoShardBurst6 { 0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 1; } 100% { transform: translate3d(0, 34vh, 0) rotate(-200deg) scale(1.2); opacity: 0; } }
+
+/* --------------------------------------------------------------------------
+   5. 专属转场矩阵 03：璃月 -> 稻妻 (梦想一心拔刀 · 紫白电弧与真切错位裂屏)
+   -------------------------------------------------------------------------- */
+#trans-slash {
+  background: transparent;
+}
+
+/* 真实屏幕裂开错位容器 */
+#trans-slash .slash-slice-container {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 84;
+}
+
+#trans-slash .slash-slice-top,
+#trans-slash .slash-slice-bottom {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+  background: #06080d;
+}
+
+#trans-slash .slash-slice-top {
+  clip-path: polygon(0 0, 100% 0, 100% 43%, 0 71%);
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+#trans-slash.active .slash-slice-top {
+  animation: slashDisplaceTop 0.74s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-slash .slash-slice-bottom {
+  clip-path: polygon(0 71%, 100% 43%, 100% 100%, 0 100%);
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+#trans-slash.active .slash-slice-bottom {
+  animation: slashDisplaceBottom 0.74s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slashDisplaceTop {
+  0% { transform: translate3d(0, 0, 0); opacity: 1; }
+  12% { transform: translate3d(0, 0, 0); opacity: 1; }
+  45% { transform: translate3d(-75px, -45px, 0); opacity: 0.95; }
+  80% { transform: translate3d(-140px, -80px, 0); opacity: 0.7; }
+  100% { transform: translate3d(-180px, -100px, 0); opacity: 0; }
+}
+
+@keyframes slashDisplaceBottom {
+  0% { transform: translate3d(0, 0, 0); opacity: 1; }
+  12% { transform: translate3d(0, 0, 0); opacity: 1; }
+  45% { transform: translate3d(75px, 45px, 0); opacity: 0.95; }
+  80% { transform: translate3d(140px, 80px, 0); opacity: 0.7; }
+  100% { transform: translate3d(180px, 100px, 0); opacity: 0; }
+}
+
+/* 闪光、刀光、电弧采用 mix-blend-mode: screen */
+#trans-slash .slash-flash-screen {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(202, 124, 255, 0.75) 45%, rgba(126, 34, 206, 0.8) 100%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: opacity;
+  z-index: 87;
+}
+
+#trans-slash.active .slash-flash-screen {
+  animation: electroStrobeFlash 0.72s ease-out forwards;
+}
+
+#trans-slash .slash-beam-line {
+  position: absolute;
+  width: 180vw;
+  height: 24px;
+  background: linear-gradient(90deg, transparent 0%, rgba(202, 124, 255, 0.3) 15%, #ca7cff 40%, #ffffff 50%, #ca7cff 60%, rgba(202, 124, 255, 0.3) 85%, transparent 100%);
+  box-shadow: 0 0 50px #ca7cff, 0 0 100px #9333ea, 0 0 160px #ffffff;
+  transform: rotate(-26deg);
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  z-index: 88;
+}
+
+#trans-slash.active .slash-beam-line {
+  animation: electroBladeBeam 0.74s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+#trans-slash .slash-fork-lightning {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+  z-index: 89;
+}
+
+#trans-slash.active .slash-fork-lightning {
+  animation: electroBranchFlash 0.70s ease-in-out forwards;
+}
+
+@keyframes electroStrobeFlash {
+  0% { opacity: 0; }
+  15% { opacity: 0.98; }
+  35% { opacity: 0.35; }
+  55% { opacity: 0.88; }
+  100% { opacity: 0; }
+}
+
+@keyframes electroBladeBeam {
+  0% { transform: rotate(-26deg) scaleX(0.08) translate3d(-40vw, 0, 0); opacity: 0; }
+  30% { transform: rotate(-26deg) scaleX(1.10) translate3d(0, 0, 0); opacity: 1; }
+  70% { opacity: 0.9; }
+  100% { transform: rotate(-26deg) scaleX(1.45) translate3d(40vw, 70px, 0); opacity: 0; }
+}
+
+@keyframes electroBranchFlash {
+  0% { opacity: 0; transform: scale(0.92); }
+  25% { opacity: 1; transform: scale(1.02); }
+  45% { opacity: 0.45; transform: scale(1); }
+  65% { opacity: 0.95; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+/* --------------------------------------------------------------------------
+   6. 专属转场矩阵 04：稻妻 -> 须弥 (心景幻成 · 绿色数字殿堂与百叶叶脉向外绽放)
+   -------------------------------------------------------------------------- */
+#trans-dendro {
+  background: transparent;
+}
+
+#trans-dendro .dendro-digital-dome {
+  position: absolute;
+  width: 760px;
+  height: 760px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 35px #9de337) drop-shadow(0 0 70px #a3e635);
+}
+
+#trans-dendro.active .dendro-digital-dome {
+  animation: dendroDomeExpand 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-dendro .dendro-leaf-venation {
+  position: absolute;
+  width: 560px;
+  height: 560px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 35px #a3e635);
+}
+
+#trans-dendro.active .dendro-leaf-venation {
+  animation: dendroLeafBloom 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-dendro .dendro-matrix-scan-beam {
+  position: absolute;
+  width: 100vw;
+  height: 8px;
+  background: linear-gradient(90deg, transparent 0%, #9de337 40%, #ffffff 50%, #9de337 60%, transparent 100%);
+  box-shadow: 0 0 40px #9de337, 0 0 80px #a3e635;
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+#trans-dendro.active .dendro-matrix-scan-beam {
+  animation: dendroScanSwipe 0.78s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* 孢子群独立容器 */
+#trans-dendro .dendro-spores-cluster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#trans-dendro .dendro-spore-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9de337;
+  box-shadow: 0 0 18px #9de337, 0 0 35px #ffffff;
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+#trans-dendro.active .dendro-spore-dot:nth-child(1) { left: 18%; top: 38%; animation: dendroSporeFloat1 0.75s ease-out forwards; }
+#trans-dendro.active .dendro-spore-dot:nth-child(2) { left: 32%; top: 62%; animation: dendroSporeFloat2 0.78s ease-out 0.04s forwards; }
+#trans-dendro.active .dendro-spore-dot:nth-child(3) { left: 52%; top: 28%; animation: dendroSporeFloat1 0.80s ease-out 0.07s forwards; }
+#trans-dendro.active .dendro-spore-dot:nth-child(4) { left: 68%; top: 58%; animation: dendroSporeFloat2 0.76s ease-out 0.05s forwards; }
+#trans-dendro.active .dendro-spore-dot:nth-child(5) { left: 84%; top: 40%; animation: dendroSporeFloat1 0.82s ease-out 0.09s forwards; }
+#trans-dendro.active .dendro-spore-dot:nth-child(6) { left: 76%; top: 72%; animation: dendroSporeFloat2 0.79s ease-out 0.06s forwards; }
+
+@keyframes dendroDomeExpand {
+  0% { transform: scale(0.2) rotate(0deg); opacity: 0; filter: drop-shadow(0 0 0 #9de337); }
+  50% { transform: scale(1.25) rotate(90deg); opacity: 1; filter: drop-shadow(0 0 60px #9de337); }
+  100% { transform: scale(2.5) rotate(180deg); opacity: 0; filter: drop-shadow(0 0 90px #a3e635); }
+}
+
+@keyframes dendroLeafBloom {
+  0% { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+  45% { transform: scale(1.2) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 50px #9de337); }
+  100% { transform: scale(2.2) rotate(25deg); opacity: 0; }
+}
+
+@keyframes dendroScanSwipe {
+  0% { transform: translate3d(0, -50vh, 0); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: translate3d(0, 50vh, 0); opacity: 0; }
+}
+
+@keyframes dendroSporeFloat1 {
+  0% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate3d(-18vw, -28vh, 0) scale(1.7); opacity: 0; }
+}
+
+@keyframes dendroSporeFloat2 {
+  0% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate3d(20vw, -30vh, 0) scale(1.8); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   7. 专属转场矩阵 05：须弥 -> 枫丹 (审判水幕自底漫灌 · 歌剧院大幕双向拉开)
+   -------------------------------------------------------------------------- */
+#trans-hydro {
+  background: transparent;
+}
+
+#trans-hydro .hydro-judgement-seal {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  z-index: 87;
+  filter: drop-shadow(0 0 45px #2ec5ff) drop-shadow(0 0 90px #38bdf8);
+}
+
+#trans-hydro.active .hydro-judgement-seal {
+  animation: hydroSealSpin 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-hydro .hydro-water-surge {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(46, 197, 255, 0.95) 0%, rgba(14, 165, 233, 0.8) 45%, rgba(3, 105, 161, 0.45) 75%, transparent 100%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  z-index: 85;
+}
+
+#trans-hydro.active .hydro-water-surge {
+  animation: hydroWaterSurgeUp 0.78s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+/* 歌剧院剧场大幕独立容器 */
+#trans-hydro .hydro-curtains-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 86;
+  overflow: hidden;
+}
+
+#trans-hydro .hydro-curtain-left,
+#trans-hydro .hydro-curtain-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 51vw;
+  background: linear-gradient(135deg, #021a32 0%, #0369a1 40%, #0284c7 75%, #38bdf8 100%);
+  box-shadow: 0 0 60px rgba(46, 197, 255, 0.6);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+#trans-hydro .hydro-curtain-left {
+  left: 0;
+  transform-origin: left center;
+  border-right: 4px solid #fef08a;
+}
+
+#trans-hydro .hydro-curtain-right {
+  right: 0;
+  transform-origin: right center;
+  border-left: 4px solid #fef08a;
+}
+
+#trans-hydro.active .hydro-curtain-left {
+  animation: hydroCurtainOpenLeft 0.78s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+#trans-hydro.active .hydro-curtain-right {
+  animation: hydroCurtainOpenRight 0.78s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+@keyframes hydroSealSpin {
+  0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
+  45% { transform: scale(1.25) rotate(120deg); opacity: 1; filter: drop-shadow(0 0 60px #2ec5ff); }
+  100% { transform: scale(2.5) rotate(240deg); opacity: 0; }
+}
+
+@keyframes hydroWaterSurgeUp {
+  0% { transform: translate3d(0, 100%, 0); opacity: 0; }
+  35% { opacity: 0.98; }
+  60% { transform: translate3d(0, 0, 0); opacity: 0.92; }
+  100% { transform: translate3d(0, -30%, 0); opacity: 0; }
+}
+
+@keyframes hydroCurtainOpenLeft {
+  0% { transform: scaleX(1); opacity: 0; }
+  20% { opacity: 1; transform: scaleX(1); }
+  48% { transform: scaleX(1); }
+  100% { transform: scaleX(0); opacity: 0; }
+}
+
+@keyframes hydroCurtainOpenRight {
+  0% { transform: scaleX(1); opacity: 0; }
+  20% { opacity: 1; transform: scaleX(1); }
+  48% { transform: scaleX(1); }
+  100% { transform: scaleX(0); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   8. 专属转场矩阵 06：枫丹 -> 纳塔 (纳塔部族炽热战火与黑曜石龙息爆发)
+   -------------------------------------------------------------------------- */
+#trans-pyro {
+  background: transparent;
+}
+
+#trans-pyro .pyro-dragon-blast {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 45px #ff5722) drop-shadow(0 0 90px #ea580c);
+}
+
+#trans-pyro.active .pyro-dragon-blast {
+  animation: pyroDragonBurst 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-pyro .pyro-blast-core {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, #ffffff 0%, #ffedd5 20%, #ff5722 50%, #b91c1c 80%, transparent 100%);
+  box-shadow: 0 0 110px #ff5722, 0 0 220px #ea580c, 0 0 320px #b91c1c;
+  border-radius: 50%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+#trans-pyro.active .pyro-blast-core {
+  animation: pyroCoreBlast 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-pyro .pyro-obsidian-cracks {
+  position: absolute;
+  width: 820px;
+  height: 820px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 25px #ff5722);
+}
+
+#trans-pyro.active .pyro-obsidian-cracks {
+  animation: pyroCracksSpread 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-pyro .pyro-ember-cluster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#trans-pyro .pyro-ember-item {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f97316;
+  box-shadow: 0 0 20px #ea580c, 0 0 40px #ffffff;
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+#trans-pyro.active .pyro-ember-item:nth-child(1) { left: 45%; top: 50%; animation: pyroEmberFly1 0.75s ease-out forwards; }
+#trans-pyro.active .pyro-ember-item:nth-child(2) { left: 52%; top: 48%; animation: pyroEmberFly2 0.78s ease-out 0.04s forwards; }
+#trans-pyro.active .pyro-ember-item:nth-child(3) { left: 48%; top: 55%; animation: pyroEmberFly3 0.76s ease-out 0.08s forwards; }
+#trans-pyro.active .pyro-ember-item:nth-child(4) { left: 50%; top: 45%; animation: pyroEmberFly4 0.80s ease-out 0.06s forwards; }
+#trans-pyro.active .pyro-ember-item:nth-child(5) { left: 44%; top: 52%; animation: pyroEmberFly1 0.77s ease-out 0.05s forwards; }
+#trans-pyro.active .pyro-ember-item:nth-child(6) { left: 54%; top: 51%; animation: pyroEmberFly2 0.79s ease-out 0.07s forwards; }
+
+@keyframes pyroDragonBurst {
+  0% { transform: scale(0.2) rotate(0deg); opacity: 0; }
+  45% { transform: scale(1.35) rotate(35deg); opacity: 1; filter: drop-shadow(0 0 80px #ff5722); }
+  100% { transform: scale(2.9) rotate(70deg); opacity: 0; }
+}
+
+@keyframes pyroCoreBlast {
+  0% { transform: scale(0.2); opacity: 0; }
+  40% { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(3.3); opacity: 0; }
+}
+
+@keyframes pyroCracksSpread {
+  0% { transform: scale(0.3); opacity: 0; }
+  40% { transform: scale(1.2); opacity: 1; filter: drop-shadow(0 0 70px #ff5722); }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+
+@keyframes pyroEmberFly1 { 0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; } 100% { transform: translate3d(-34vw, -38vh, 0) scale(0.2); opacity: 0; } }
+@keyframes pyroEmberFly2 { 0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; } 100% { transform: translate3d(36vw, -35vh, 0) scale(0.2); opacity: 0; } }
+@keyframes pyroEmberFly3 { 0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; } 100% { transform: translate3d(-32vw, 34vh, 0) scale(0.2); opacity: 0; } }
+@keyframes pyroEmberFly4 { 0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; } 100% { transform: translate3d(33vw, 36vh, 0) scale(0.2); opacity: 0; } }
+
+/* --------------------------------------------------------------------------
+   9. 专属转场矩阵 07：纳塔 -> 至冬 (极地严寒霜花覆屏 · 冰晶破冰碎裂)
+   -------------------------------------------------------------------------- */
+#trans-cryo {
+  background: transparent;
+}
+
+#trans-cryo .cryo-sheer-cold-vignette {
+  position: absolute;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  background: radial-gradient(circle at center, transparent 30%, rgba(158, 230, 255, 0.5) 65%, rgba(224, 247, 250, 0.95) 100%);
+  box-shadow: inset 0 0 120px #9ee6ff, inset 0 0 200px rgba(56, 189, 248, 0.85);
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+#trans-cryo.active .cryo-sheer-cold-vignette {
+  animation: cryoVignetteCreep 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-cryo .cryo-frost-crystal-pattern {
+  position: absolute;
+  width: 680px;
+  height: 680px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 40px #9ee6ff) drop-shadow(0 0 80px #ffffff);
+}
+
+#trans-cryo.active .cryo-frost-crystal-pattern {
+  animation: cryoCrystalBloom 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-cryo .cryo-ice-shard-burst {
+  position: absolute;
+  width: 620px;
+  height: 620px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 50px #ffffff);
+}
+
+#trans-cryo.active .cryo-ice-shard-burst {
+  animation: cryoIceShatterBreak 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cryoVignetteCreep {
+  0% { transform: scale(1.35); opacity: 0; }
+  45% { transform: scale(1.0); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0; }
+}
+
+@keyframes cryoCrystalBloom {
+  0% { transform: scale(0.2) rotate(0deg); opacity: 0; }
+  45% { transform: scale(1.3) rotate(60deg); opacity: 1; filter: drop-shadow(0 0 65px #9ee6ff); }
+  100% { transform: scale(2.5) rotate(120deg); opacity: 0; }
+}
+
+@keyframes cryoIceShatterBreak {
+  0% { transform: scale(0.4); opacity: 0; }
+  45% { transform: scale(1.2); opacity: 1; filter: drop-shadow(0 0 70px #ffffff); }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   10. 专属转场矩阵 08：至冬 -> 神女劈观 (大红戏曲水袖长绸 · 浓墨中央爆开晕染)
+   -------------------------------------------------------------------------- */
+#trans-opera {
+  background: transparent;
+}
+
+#trans-opera .opera-ribbon-wave-1,
+#trans-opera .opera-ribbon-wave-2,
+#trans-opera .opera-ribbon-wave-3 {
+  position: absolute;
+  width: 170vw;
+  height: 65px;
+  will-change: transform, opacity;
+  opacity: 0;
+  z-index: 87;
+}
+
+#trans-opera .opera-ribbon-wave-1 {
+  background: linear-gradient(90deg, transparent 0%, #ef4444 25%, #fca5a5 50%, #dc2626 75%, transparent 100%);
+  box-shadow: 0 0 55px #ef4444, 0 0 100px #dc2626;
+  transform: rotate(-18deg);
+}
+
+#trans-opera.active .opera-ribbon-wave-1 {
+  animation: operaRibbonFlow1 0.78s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+#trans-opera .opera-ribbon-wave-2 {
+  background: linear-gradient(90deg, transparent 0%, #e11d48 25%, #fecdd3 50%, #be123c 75%, transparent 100%);
+  box-shadow: 0 0 55px #e11d48, 0 0 100px #be123c;
+  transform: rotate(16deg);
+}
+
+#trans-opera.active .opera-ribbon-wave-2 {
+  animation: operaRibbonFlow2 0.78s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+#trans-opera .opera-ribbon-wave-3 {
+  height: 35px;
+  background: linear-gradient(90deg, transparent 0%, #f59e0b 30%, #fef08a 50%, #f59e0b 70%, transparent 100%);
+  box-shadow: 0 0 40px #f59e0b;
+  transform: rotate(-4deg);
+}
+
+#trans-opera.active .opera-ribbon-wave-3 {
+  animation: operaRibbonFlow3 0.80s cubic-bezier(0.22, 0.61, 0.36, 1) 0.04s forwards;
+}
+
+/* 宣纸水墨在中央爆开晕染 (纯正中国水墨浓墨与飞白金云) */
+#trans-opera .opera-ink-circle {
+  position: absolute;
+  width: 580px;
+  height: 580px;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  z-index: 86;
+}
+
+#trans-opera.active .opera-ink-circle {
+  animation: operaInkSplatterBloom 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes operaRibbonFlow1 {
+  0% { transform: rotate(-18deg) translateX(-95vw); opacity: 0; }
+  35% { opacity: 1; }
+  70% { opacity: 0.95; }
+  100% { transform: rotate(-18deg) translateX(95vw); opacity: 0; }
+}
+
+@keyframes operaRibbonFlow2 {
+  0% { transform: rotate(16deg) translateX(95vw); opacity: 0; }
+  35% { opacity: 1; }
+  70% { opacity: 0.95; }
+  100% { transform: rotate(16deg) translateX(-95vw); opacity: 0; }
+}
+
+@keyframes operaRibbonFlow3 {
+  0% { transform: rotate(-4deg) translateX(-90vw); opacity: 0; }
+  40% { opacity: 0.95; }
+  100% { transform: rotate(-4deg) translateX(90vw); opacity: 0; }
+}
+
+@keyframes operaInkSplatterBloom {
+  0% { transform: scale(0.12) rotate(-15deg); opacity: 0; }
+  45% { transform: scale(1.35) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 60px rgba(0, 0, 0, 0.9)); }
+  100% { transform: scale(2.6) rotate(15deg); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   11. 专属转场矩阵 09：神女劈观 -> 结语 (七曜元素向心聚合 · 引爆提瓦特星盘)
+   -------------------------------------------------------------------------- */
+#trans-celestia {
+  background: transparent;
+}
+
+#trans-celestia .celestia-ring-blast {
+  position: absolute;
+  width: 580px;
+  height: 580px;
+  border-radius: 50%;
+  border: 4px solid rgba(223, 178, 255, 0.95);
+  box-shadow: 0 0 100px rgba(223, 178, 255, 0.95), inset 0 0 80px rgba(223, 178, 255, 0.75);
+  opacity: 0;
+  mix-blend-mode: screen;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+#trans-celestia.active .celestia-ring-blast {
+  animation: celestiaSupernovaBurst 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#trans-celestia .celestia-seven-rays {
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+#trans-celestia.active .celestia-seven-rays {
+  animation: celestiaSevenConvergence 0.78s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+#trans-celestia .celestia-primogem-core {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+#trans-celestia.active .celestia-primogem-core {
+  animation: celestiaPrimogemDetonate 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes celestiaSupernovaBurst {
+  0% { transform: scale(0.15); opacity: 0; }
+  45% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(3.0); opacity: 0; }
+}
+
+@keyframes celestiaSevenConvergence {
+  0% { transform: scale(2.8) rotate(0deg); opacity: 0; }
+  45% { transform: scale(1.0) rotate(180deg); opacity: 1; filter: drop-shadow(0 0 80px #dfb2ff); }
+  100% { transform: scale(0.1) rotate(360deg); opacity: 0; }
+}
+
+@keyframes celestiaPrimogemDetonate {
+  0% { transform: scale(0.2) rotate(0deg); opacity: 0; }
+  40% { transform: scale(1.4) rotate(-90deg); opacity: 1; filter: drop-shadow(0 0 90px #ffffff); }
+  100% { transform: scale(3.2) rotate(180deg); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   10. 专属转场矩阵：挪德卡莱新月转场 (#trans-lunar)
+   -------------------------------------------------------------------------- */
+#trans-lunar {
+  background: transparent;
+}
+
+#trans-lunar .lunar-torque-ripple {
+  position: absolute;
+  width: 900px;
+  height: 900px;
+  border-radius: 50%;
+  border: 3px solid rgba(185, 216, 255, 0.7);
+  box-shadow: 0 0 60px rgba(185, 216, 255, 0.8), inset 0 0 60px rgba(185, 216, 255, 0.5);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+#trans-lunar.active .lunar-torque-ripple {
+  animation: lunarTorqueWave 0.75s ease-out forwards;
+}
+
+#trans-lunar .lunar-welkin-moon-symbol {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transform-origin: center center;
+}
+
+#trans-lunar.active .lunar-welkin-moon-symbol {
+  animation: lunarWelkinMoonRise 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes lunarTorqueWave {
+  0% { transform: scale(0.2); opacity: 0; }
+  40% { opacity: 1; filter: drop-shadow(0 0 60px #b9d8ff); }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+@keyframes lunarWelkinMoonRise {
+  0% { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+  45% { transform: scale(1.2) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 70px #b9d8ff); }
+  100% { transform: scale(2.2) rotate(20deg); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   11. 专属转场矩阵：收官页雷鸣星光转场 (#trans-vlogs)
+   -------------------------------------------------------------------------- */
+#trans-vlogs {
+  background: transparent;
+}
+
+#trans-vlogs .electro-keqing-starlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(192, 132, 252, 0.85) 0%, rgba(147, 51, 234, 0.45) 50%, transparent 80%);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+#trans-vlogs.active .electro-keqing-starlight {
+  animation: keqingStarlightFlash 0.72s ease-out forwards;
+}
+
+#trans-vlogs .electro-starlight-symbol {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transform-origin: center center;
+}
+
+#trans-vlogs.active .electro-starlight-symbol {
+  animation: keqingStarPulse 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes keqingStarlightFlash {
+  0% { opacity: 0; transform: scale(0.4); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.0); }
+}
+
+@keyframes keqingStarPulse {
+  0% { transform: scale(0.2) rotate(0deg); opacity: 0; }
+  45% { transform: scale(1.3) rotate(45deg); opacity: 1; filter: drop-shadow(0 0 60px #c084fc); }
+  100% { transform: scale(2.6) rotate(90deg); opacity: 0; }
+}
+

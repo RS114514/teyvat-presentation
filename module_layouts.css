@@ -1,0 +1,1871 @@
+/* ==========================================================================
+   《原神》5分钟提瓦特全景交互课件 · 杂志级差异化布局与风景通透样式系统
+   Module: module_layouts.css
+   
+   核心特性：
+   1. 彻底解决风景不可见：移除 96% 死黑覆盖，暗角遮罩严格降至 35%~45%，
+      采用局部暗影与大屏高对比滤镜，确保 2.5K 超清风景画卷通透明亮。
+   2. Layout A（经典非对称穿透）：免抠大立绘破界穿透背景巨幅英文字。
+   3. Layout B（极昼极夜分屏）：专用于纳塔与至冬，炽热熔岩与极寒冰原对撞。
+   4. Layout C（戏曲宽银幕）：《神女劈观》全宽舞台背景，云堇与申鹤双人拱卫。
+   5. Layout D（殿堂级尾页）：彻底移除居中黑色小弹窗，双生立绘拱卫、七国元素环绕、金色名牌画卷式排版。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 风景通透系统：移除死黑，大屏超清画卷呈现 (35%~45% 适度遮罩)
+   -------------------------------------------------------------------------- */
+.layer-scenery {
+  position: absolute;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: contrast(1.10) saturate(1.18) brightness(1.04);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+  will-change: transform, opacity;
+  z-index: 1;
+}
+
+/* 遮罩优化：将原本 96% 死黑覆盖降低至 35%~45% 之间，保证大屏后排看清 2.5K 风景 */
+.layer-scenery::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(6, 8, 14, 0.44) 0%,
+    rgba(6, 8, 14, 0.35) 42%,
+    rgba(6, 8, 14, 0.16) 75%,
+    rgba(6, 8, 14, 0.08) 100%
+  ),
+  radial-gradient(
+    circle at 62% 50%,
+    transparent 42%,
+    rgba(6, 8, 14, 0.38) 100%
+  );
+  pointer-events: none;
+}
+
+/* 至冬极寒北境夜空左上角暗晕优化：自然融入极夜星空，隐去底图原生微标 */
+.slide-snezhnaya .layer-scenery::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32vw;
+  height: 25vh;
+  background: radial-gradient(ellipse at 0% 0%, rgba(6, 10, 20, 0.98) 0%, rgba(6, 10, 20, 0.88) 48%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 杂志巨幅英文水印层 */
+.layer-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 4.5vw;
+  overflow: hidden;
+}
+
+.watermark-text {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: clamp(8rem, 16vw, 17rem);
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: -0.04em;
+  color: rgba(255, 255, 255, 0.045);
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+  text-transform: uppercase;
+  user-select: none;
+  filter: drop-shadow(0 0 25px rgba(var(--active-rgb, 255, 255, 255), 0.15));
+}
+
+/* 前景核心叙事区 (Layer Narrative) 局部暗影与通透玻璃质感 */
+.layer-narrative {
+  position: absolute;
+  top: 9vh;
+  left: 5.5vw;
+  width: 50vw;
+  max-width: 820px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vh;
+  pointer-events: auto;
+}
+
+.slide-main-title {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: clamp(2.3rem, 3.8vw, 4.2rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.08;
+  color: #ffffff;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95), 0 0 35px rgba(var(--active-rgb, 255, 255, 255), 0.4);
+}
+
+.slide-sub-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: clamp(1.22rem, 1.62vw, 1.55rem);
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.98);
+}
+
+.slide-sub-title::before {
+  content: "";
+  display: inline-block;
+  width: 32px;
+  height: 3px;
+  background: var(--active-element, #dfb2ff);
+  box-shadow: 0 0 10px var(--active-element, #dfb2ff);
+}
+
+/* --------------------------------------------------------------------------
+   2. Layout A: 经典非对称穿透 (Slide 01-06)
+   免抠大立绘破界穿透背景巨幅英文字，右侧神明舞台与 3D 星罗盘
+   -------------------------------------------------------------------------- */
+.layout-A .layer-character-wrap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50vw;
+  height: 100vh;
+  z-index: 5;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-A .character-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+}
+
+/* 免抠大立绘：破界穿透尺寸，高耸挺拔 */
+.layout-A .character-visual {
+  position: absolute;
+  bottom: 3vh;
+  right: 2vw;
+  height: 86vh;
+  max-height: 920px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 40px rgba(var(--active-rgb, 255, 255, 255), 0.35));
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+  transform-style: preserve-3d;
+  z-index: 6;
+  animation: charBreathe 5s ease-in-out infinite alternate;
+}
+
+/* 神明印牌 */
+.layout-A .archon-placard {
+  position: absolute;
+  bottom: 5.5vh;
+  right: 3.5vw;
+  background: rgba(10, 14, 23, 0.82);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(var(--active-rgb, 255, 255, 255), 0.45);
+  border-radius: 10px;
+  padding: 12px 20px;
+  min-width: 220px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(var(--active-rgb, 255, 255, 255), 0.2);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layout-A .archon-placard .placard-nation {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: var(--active-element, #dfb2ff);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.layout-A .archon-placard .placard-title-cn {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+}
+
+.layout-A .archon-placard .placard-title-en {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   3. Layout B: 极昼极夜分屏 (专用于纳塔与至冬，熔岩与极寒冰原对撞)
+   -------------------------------------------------------------------------- */
+.layout-B .polar-split-container,
+.layout-B .natlan-split-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.layout-B .split-half-left {
+  width: 50vw;
+  height: 100vh;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  filter: contrast(1.10) saturate(1.20) brightness(1.04);
+}
+
+.layout-B .split-half-right {
+  width: 50vw;
+  height: 100vh;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  filter: contrast(1.10) saturate(1.20) brightness(1.04);
+}
+
+/* 贯穿中缝的能量裂隙分界线 */
+.layout-B .split-divider-seam {
+  position: absolute;
+  left: 50vw;
+  top: 0;
+  bottom: 0;
+  width: 2.5px;
+  background: var(--active-element, #ff5722);
+  box-shadow: 0 0 25px var(--active-element, #ff5722), 0 0 50px rgba(var(--active-rgb, 255, 87, 34), 0.6);
+  z-index: 5;
+}
+
+/* 纳塔专属熔岩对撞光感 */
+.layout-B.slide-natlan .split-divider-seam,
+.layout-B.split-theme-natlan .split-divider-seam {
+  background: #ff5722;
+  box-shadow: 0 0 30px #ff5722, 0 0 60px rgba(255, 87, 34, 0.75);
+}
+
+/* 至冬专属极冰风暴光感 */
+.layout-B.slide-snezhnaya .split-divider-seam,
+.layout-B.split-theme-snezhnaya .split-divider-seam {
+  background: #9ee6ff;
+  box-shadow: 0 0 30px #9ee6ff, 0 0 60px rgba(158, 230, 255, 0.8);
+}
+
+.layout-B .split-overlay-left {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(6, 8, 14, 0.48) 0%, rgba(6, 8, 14, 0.22) 100%);
+}
+
+.layout-B .split-overlay-right {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 70% 50%, transparent 35%, rgba(6, 8, 14, 0.40) 100%);
+}
+
+/* Layout B 叙事区域配置高对比半透明磨砂背板 */
+.layout-B .layer-narrative {
+  position: absolute;
+  top: 8.5vh;
+  left: 4.8vw;
+  width: 44vw;
+  max-width: 760px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vh;
+  pointer-events: auto;
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 32vw;
+  max-width: 500px;
+  left: 4.5vw;
+}
+
+.layout-B .layer-character-wrap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 54vw;
+  height: 100vh;
+  z-index: 6;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-B .character-visual {
+  position: absolute;
+  bottom: 2vh;
+  right: -1vw;
+  height: 88vh;
+  max-height: 940px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 45px rgba(var(--active-rgb, 255, 87, 34), 0.4));
+  z-index: 7;
+  animation: charBreathe 5s ease-in-out infinite alternate;
+}
+
+/* --------------------------------------------------------------------------
+   4. Layout C: 戏曲宽银幕舞台长卷 (专用于《神女劈观》)
+   全宽舞台背景，云堇与申鹤双人拱卫，底部横向三列要点微框
+   -------------------------------------------------------------------------- */
+.layout-C .layer-scenery {
+  filter: contrast(1.12) saturate(1.22) brightness(1.05);
+}
+
+.layout-C .layer-scenery::after {
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(6, 8, 14, 0.18) 0%,
+    rgba(6, 8, 14, 0.42) 70%,
+    rgba(6, 8, 14, 0.65) 100%
+  ),
+  linear-gradient(to bottom, rgba(6, 8, 14, 0.45) 0%, transparent 25%, transparent 75%, rgba(6, 8, 14, 0.65) 100%);
+}
+
+/* 戏曲宽银幕顶部居中标题展板 */
+.layout-C .opera-stage-banner {
+  position: absolute;
+  top: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  max-width: 1200px;
+  text-align: center;
+  z-index: 12;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.layout-C .opera-stage-banner .slide-main-title {
+  font-size: clamp(2.4rem, 4vw, 4.4rem);
+  color: #fef08a;
+  text-shadow: 0 0 30px rgba(245, 158, 11, 0.7), 0 4px 18px rgba(0, 0, 0, 0.9);
+}
+
+.layout-C .opera-stage-banner .slide-sub-title {
+  justify-content: center;
+  color: #fde68a;
+}
+
+.layout-C .opera-stage-banner .slide-sub-title::before {
+  display: none;
+}
+
+/* 申鹤左立绘 */
+.layout-C .opera-character-left {
+  position: absolute;
+  bottom: 0;
+  left: 1.5vw;
+  width: 32vw;
+  height: 82vh;
+  z-index: 7;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+/* 云堇右立绘 */
+.layout-C .opera-character-right {
+  position: absolute;
+  bottom: 0;
+  right: 1.5vw;
+  width: 32vw;
+  height: 82vh;
+  z-index: 7;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.layout-C .opera-character-img {
+  height: 80vh;
+  max-height: 850px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 35px rgba(245, 158, 11, 0.35));
+  animation: charBreathe 5s ease-in-out infinite alternate;
+}
+
+/* 戏曲核心三要点横向三列微框 */
+.layout-C .opera-keypoints-row {
+  position: absolute;
+  bottom: 15vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58vw;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.layout-C .opera-keypoint-card {
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  border-left: 3px solid rgba(245, 158, 11, 0.85);
+  border-radius: 0;
+  padding: 8px 16px;
+  box-shadow: none;
+  transition: transform 0.25s ease;
+}
+
+.layout-C .opera-keypoint-card:hover {
+  transform: translateY(-4px);
+}
+
+.layout-C .opera-keypoint-card .keypoint-num {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #f59e0b;
+}
+
+.layout-C .opera-keypoint-card .keypoint-en,
+.opera-keypoint-card .keypoint-en {
+  font-size: 26px;
+  line-height: 1.3;
+  color: #ffffff;
+  font-weight: 800;
+  margin-top: 6px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.98), 0 0 20px rgba(245, 158, 11, 0.45);
+}
+
+.layout-C .opera-keypoint-card .keypoint-cn,
+.opera-keypoint-card .keypoint-cn {
+  font-size: 16.5px;
+  line-height: 1.45;
+  color: #fef08a;
+  font-weight: 600;
+  margin-top: 5px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.98);
+}
+
+/* 戏曲宽银幕底部提词胶囊 */
+.layout-C .layer-narrative {
+  position: absolute;
+  top: auto;
+  bottom: 4.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56vw;
+  max-width: 900px;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.layout-C .teleprompter-card {
+  margin-top: 0;
+  background: rgba(10, 14, 22, 0.85);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   5. Layout D: 殿堂级尾页画卷式排版 (Slide 10 结语与致谢)
+   彻底移除居中黑色小弹窗！荧与空双生立绘拱卫、七国元素环绕、金色名牌画卷
+   -------------------------------------------------------------------------- */
+.layout-D .layer-narrative,
+.layout-epilogue .layer-narrative {
+  position: absolute;
+  top: 9vh;
+  left: 5.5vw;
+  width: 48vw;
+  max-width: 780px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vh;
+  pointer-events: auto;
+}
+
+/* 双生旅行者立绘拱卫舞台 */
+.layout-D .epilogue-dual-travelers,
+.layout-epilogue .epilogue-dual-travelers {
+  position: absolute;
+  top: 0;
+  right: 2vw;
+  width: 48vw;
+  height: 100vh;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.layout-D .traveler-img,
+.layout-epilogue .traveler-img {
+  height: 82vh;
+  max-height: 860px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 40px rgba(223, 178, 255, 0.4));
+  animation: charFloat 5s ease-in-out infinite alternate;
+}
+
+.layout-D .traveler-lumine,
+.layout-epilogue .traveler-lumine {
+  margin-right: -7vw;
+  z-index: 7;
+}
+
+.layout-D .traveler-aether,
+.layout-epilogue .traveler-aether {
+  z-index: 6;
+}
+
+/* 七国元素星印光环 (Seven Elements Halo) */
+.layout-D .seven-elements-halo,
+.layout-epilogue .seven-elements-halo {
+  position: absolute;
+  top: 7vh;
+  right: 6vw;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9;
+  background: rgba(10, 14, 24, 0.65);
+  backdrop-filter: blur(14px);
+  padding: 8px 18px;
+  border-radius: 30px;
+  border: 1px solid rgba(223, 178, 255, 0.35);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+}
+
+.layout-D .element-chip,
+.layout-epilogue .element-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 创作者殿堂金色画卷印章名牌 (彻底替代居中黑色小弹窗) */
+.layout-D .epilogue-gold-scroll-plaque,
+.layout-epilogue .epilogue-creator-plaque {
+  position: absolute;
+  bottom: 5.5vh;
+  right: 3vw;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  background: linear-gradient(135deg, rgba(20, 24, 38, 0.88) 0%, rgba(12, 16, 26, 0.92) 100%);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(244, 192, 83, 0.65);
+  border-radius: 14px;
+  padding: 16px 26px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 192, 83, 0.25);
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.layout-D .creator-column,
+.layout-epilogue .creator-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layout-D .creator-role,
+.layout-epilogue .creator-role {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: #f4c053;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.layout-D .creator-name,
+.layout-epilogue .creator-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+}
+
+.layout-D .creator-divider-line,
+.layout-epilogue .creator-divider-line {
+  width: 1px;
+  height: 38px;
+  background: linear-gradient(to bottom, transparent, rgba(244, 192, 83, 0.6), transparent);
+}
+
+/* --------------------------------------------------------------------------
+   通用微排版动效
+   -------------------------------------------------------------------------- */
+@keyframes charBreathe {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(-8px) scale(1.012); }
+}
+
+@keyframes charFloat {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-10px); }
+}
+
+/* --------------------------------------------------------------------------
+   6. 关键文字比例强制规范 (希沃大屏远视距优化 · 英文 30px 粗体 / 中文 18px 淡金 · 1.67x)
+   -------------------------------------------------------------------------- */
+.keypoint-en {
+  font-size: 30px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  color: #ffffff !important;
+  letter-spacing: 0.01em !important;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.98), 0 0 25px rgba(0, 0, 0, 0.85) !important;
+}
+
+.keypoint-cn {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  line-height: 1.42 !important;
+  color: #fef08a !important;
+  margin-top: 5px !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.98) !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. Slide 01 (Prologue) 双生旅行者纵深站位与文字避让
+   -------------------------------------------------------------------------- */
+.slide-prologue .layer-narrative {
+  top: 10vh !important;
+  left: 5vw !important;
+  width: 42vw !important;
+  max-width: 700px !important;
+  z-index: 12 !important;
+}
+
+.slide-prologue .layer-character-wrap {
+  top: 0 !important;
+  right: 2vw !important;
+  width: 48vw !important;
+  height: 100vh !important;
+  z-index: 6 !important;
+  pointer-events: auto !important;
+}
+
+.slide-prologue .prologue-dual-travelers {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-prologue .traveler-aether-fg {
+  position: absolute;
+  bottom: 2vh;
+  right: 3vw;
+  height: 86vh;
+  max-height: 920px;
+  width: auto;
+  object-fit: contain;
+  z-index: 7;
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 35px rgba(223, 178, 255, 0.4));
+  animation: charFloat 5s ease-in-out infinite alternate;
+}
+
+.slide-prologue .traveler-lumine-bg {
+  position: absolute;
+  bottom: 6vh;
+  right: 18vw;
+  height: 76vh;
+  max-height: 820px;
+  width: auto;
+  object-fit: contain;
+  z-index: 5;
+  opacity: 0.92;
+  filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 25px rgba(223, 178, 255, 0.25));
+  transform: translateZ(-20px);
+}
+
+/* --------------------------------------------------------------------------
+   8. Layout keqing-vlogs: 刻晴专属收官页 + 德国交流视频矩阵
+   -------------------------------------------------------------------------- */
+.layout-keqing-vlogs .layer-narrative {
+  position: absolute;
+  top: 6vh;
+  left: 4.5vw;
+  width: 56vw;
+  max-width: 1020px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.layout-keqing-vlogs .vlog-cta-card {
+  background: linear-gradient(135deg, rgba(20, 16, 36, 0.88) 0%, rgba(12, 10, 24, 0.94) 100%);
+  border: 1.5px solid rgba(192, 132, 252, 0.45);
+  border-radius: 12px;
+  padding: 12px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.layout-keqing-vlogs .vlog-cta-en {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.layout-keqing-vlogs .vlog-cta-cn {
+  font-size: 14px;
+  color: rgba(253, 230, 138, 0.92);
+  margin-top: 4px;
+}
+
+.layout-keqing-vlogs .vlog-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+.layout-keqing-vlogs .vlog-card {
+  background: rgba(15, 14, 28, 0.90);
+  border: 1px solid rgba(192, 132, 252, 0.38);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.layout-keqing-vlogs .vlog-card:hover {
+  transform: translateY(-3px);
+  border-color: #c084fc;
+}
+
+.layout-keqing-vlogs .vlog-cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 95px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.layout-keqing-vlogs .vlog-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.layout-keqing-vlogs .vlog-play-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.layout-keqing-vlogs .vlog-title-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e9d5ff;
+  line-height: 1.35;
+  text-decoration: underline !important;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 35px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.layout-keqing-vlogs .vlog-title-link:hover {
+  color: #ffffff;
+}
+
+.layout-keqing-vlogs .vlog-qr-box {
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 8px;
+  width: 124px;
+  height: 124px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  border: 1.5px solid #c084fc;
+}
+
+.layout-keqing-vlogs .vlog-qr-img {
+  width: 112px;
+  height: 112px;
+  display: block;
+}
+
+.layout-keqing-vlogs .vlog-scan-hint {
+  font-size: 10px;
+  font-weight: 700;
+  color: #d8b4fe;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.layout-keqing-vlogs .vlog-farewell-box {
+  background: rgba(18, 14, 32, 0.88);
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  border-left: 3.5px solid #c084fc;
+  padding: 10px 18px;
+  border-radius: 6px;
+}
+
+.layout-keqing-vlogs .vlog-farewell-en {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #f5f3ff;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.layout-keqing-vlogs .vlog-farewell-slogan {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fde047;
+  margin-top: 4px;
+}
+
+.layout-keqing-vlogs .layer-character-wrap {
+  position: absolute;
+  top: 0;
+  right: 1.5vw;
+  width: 38vw;
+  height: 100vh;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.layout-keqing-vlogs .character-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-keqing-vlogs .character-visual {
+  position: absolute;
+  bottom: 2vh;
+  right: 2vw;
+  height: 86vh;
+  max-height: 920px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 40px rgba(192, 132, 252, 0.4));
+  animation: charFloat 5s ease-in-out infinite alternate;
+}
+
+.gold-divider {
+  width: 100%;
+  max-width: 520px;
+  height: 14px;
+  background: url('genshin_interactive_assets/ui/ui_genshin_divider.svg') no-repeat left center;
+  background-size: contain;
+  margin: 0.3vh 0;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(var(--active-rgb, 255, 255, 255), 0.45));
+}
+
+.element-badge-svg {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 5px var(--active-element, #dfb2ff));
+}
+
+/* ==========================================================================
+   9. 全局排版多样化与特色布局系统 (Diverse Layout & Anti-Collision System)
+   解决千篇一律“文字全在左边”，增加左右交替、全景战火、戏曲长卷、双生右置等丰富版式
+   ========================================================================== */
+
+/* 全局卡片轻量化与通透微框 */
+.keypoint-item {
+  padding: 10px 18px !important;
+  border-radius: 10px !important;
+  background: rgba(10, 15, 26, 0.70) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* Slide 01: 序幕 · 星海双子 (文字左 38vw，双生右 48vw 纵深，间距 > 250px) */
+.slide-prologue .layer-narrative {
+  top: 9vh !important;
+  left: 5vw !important;
+  width: 38vw !important;
+  max-width: 600px !important;
+}
+.slide-prologue .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+}
+.slide-prologue .layer-character-wrap {
+  right: 2vw !important;
+  width: 48vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 02: 蒙德 · 自由之都 (特色排版：文字靠右！温迪靠左！)
+   果酒湖与风车全景通透，温迪在左侧拂琴，清风吹拂向右侧叙事
+   -------------------------------------------------------------------------- */
+.slide-mondstadt .layer-narrative {
+  left: auto !important;
+  right: 5vw !important;
+  width: 38vw !important;
+  max-width: 620px !important;
+  align-items: flex-start !important;
+}
+.slide-mondstadt .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95), 0 0 35px rgba(52, 229, 167, 0.4) !important;
+}
+.slide-mondstadt .slide-sub-title {
+  color: #a7f3d0 !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 20px rgba(0, 0, 0, 0.8) !important;
+}
+.slide-mondstadt .badge-pill {
+  background: rgba(10, 16, 28, 0.82) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+}
+.slide-mondstadt .layer-character-wrap {
+  right: auto !important;
+  left: 3vw !important;
+  width: 44vw !important;
+}
+.slide-mondstadt .character-stage {
+  justify-content: flex-start !important;
+}
+.slide-mondstadt .character-visual {
+  margin-left: 2vw !important;
+}
+.slide-mondstadt .archon-placard {
+  left: auto !important;
+  right: 2vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 03: 璃月 · 契约商港 (文字靠左 36vw，钟离靠右，中央露出千帆商港)
+   -------------------------------------------------------------------------- */
+.slide-liyue .layer-narrative {
+  left: 5.5vw !important;
+  width: 36vw !important;
+  max-width: 580px !important;
+}
+.slide-liyue .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+}
+.slide-liyue .layer-character-wrap {
+  right: 2vw !important;
+  width: 46vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 04: 稻妻 · 永恒雷鸣 (特色排版：文字靠右！雷电将军靠左！)
+   雷电将军拔刀斜向右，天守阁与漫山粉樱全景展现，紫电光辉贯通全屏
+   -------------------------------------------------------------------------- */
+.slide-inazuma .layer-narrative {
+  left: auto !important;
+  right: 5.5vw !important;
+  width: 38vw !important;
+  max-width: 620px !important;
+  align-items: flex-start !important;
+}
+.slide-inazuma .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+  color: #ffffff !important;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95), 0 0 35px rgba(202, 124, 255, 0.6) !important;
+}
+.slide-inazuma .slide-sub-title {
+  color: #f3e8ff !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95) !important;
+}
+.slide-inazuma .keypoint-en {
+  color: #ffffff !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 22px rgba(202, 124, 255, 0.5) !important;
+}
+.slide-inazuma .keypoint-cn {
+  color: #f5d0fe !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95) !important;
+}
+.slide-inazuma .layer-character-wrap {
+  right: auto !important;
+  left: 2vw !important;
+  width: 45vw !important;
+}
+.slide-inazuma .character-stage {
+  justify-content: flex-start !important;
+}
+.slide-inazuma .character-visual {
+  margin-left: 2vw !important;
+}
+.slide-inazuma .archon-placard {
+  left: auto !important;
+  right: 2vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 05: 须弥 · 智慧绿茵 (智慧藤蔓阶梯流线，文字紧凑 35vw，神树通透)
+   -------------------------------------------------------------------------- */
+.slide-sumeru .layer-narrative {
+  left: 7.5vw !important;
+  width: 35vw !important;
+  max-width: 560px !important;
+}
+.slide-sumeru .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+}
+.slide-sumeru .layer-character-wrap {
+  right: 1vw !important;
+  width: 48vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 06: 枫丹 · 审判法庭 (法式微框 34vw，芙宁娜靠右水幕舞台完全展开)
+   -------------------------------------------------------------------------- */
+.slide-fontaine .layer-narrative {
+  left: 5.5vw !important;
+  width: 34vw !important;
+  max-width: 550px !important;
+}
+.slide-fontaine .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+}
+.slide-fontaine .layer-character-wrap {
+  right: 0vw !important;
+  width: 48vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 07: 纳塔 · 圣火竞技场 (纯净通透悬浮，文字左侧 32vw 收敛，彻底避让玛薇卡机车)
+   -------------------------------------------------------------------------- */
+.slide-natlan .layer-narrative {
+  top: 9vh !important;
+  left: 4.5vw !important;
+  width: 32vw !important;
+  max-width: 500px !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.slide-natlan .slide-main-title {
+  font-size: clamp(1.8rem, 2.6vw, 2.9rem) !important;
+}
+.slide-natlan .keypoint-item {
+  border-left-color: #ff5722 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 4px 0 4px 16px !important;
+}
+.slide-natlan .layer-character-wrap {
+  right: -2vw !important;
+  width: 54vw !important;
+}
+.slide-natlan .character-visual {
+  right: 0vw !important;
+}
+.slide-natlan .split-divider-seam,
+.slide-natlan .polar-split-container {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 08: 挪德卡莱 · 空月之歌 (纯净通透悬浮，移除外层大卡片，哥伦比娅完全露空)
+   -------------------------------------------------------------------------- */
+.slide-nod-krai .layer-narrative {
+  top: 8.5vh !important;
+  left: 4.5vw !important;
+  width: 35vw !important;
+  max-width: 540px !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.slide-nod-krai .slide-main-title {
+  font-size: clamp(1.7rem, 2.3vw, 2.7rem) !important;
+  line-height: 1.1 !important;
+}
+.slide-nod-krai .slide-sub-title {
+  color: #e0f2fe !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9) !important;
+}
+.slide-nod-krai .keypoint-item {
+  border-left-color: #b9d8ff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.slide-nod-krai .layer-character-wrap {
+  right: -2vw !important;
+  width: 50vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 09: 至冬 · 极寒北境 (至冬神明·冰之女皇，纯净冰霜悬浮，零死板方块)
+   -------------------------------------------------------------------------- */
+.slide-snezhnaya .layer-narrative {
+  left: 5.5vw !important;
+  width: 35vw !important;
+  max-width: 560px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.slide-snezhnaya .slide-main-title {
+  font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+}
+.slide-snezhnaya .keypoint-item {
+  border-left-color: #9ee6ff !important;
+  background: transparent !important;
+  border: none !important;
+  border-left: 3.5px solid #9ee6ff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 4px 0 4px 16px !important;
+}
+.slide-snezhnaya .layer-character-wrap {
+  right: 1vw !important;
+  width: 48vw !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 10: 文化出海 · 神女劈观 (戏曲宽银幕长卷，申鹤在左、云堇在右、居中舞台)
+   -------------------------------------------------------------------------- */
+.layout-C .opera-keypoint-card {
+  padding: 10px 16px !important;
+}
+.layout-C .opera-keypoint-card .keypoint-en {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+}
+.layout-C .opera-keypoint-card .keypoint-cn {
+  font-size: 16.5px !important;
+  font-weight: 600 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 11: 结语 · 文明之桥 (双生旅行者靠右，荧与卡片完全错开，八大元素徽章右上浮动)
+   -------------------------------------------------------------------------- */
+.layout-epilogue .layer-narrative {
+  left: 5vw !important;
+  width: 34vw !important;
+  max-width: 540px !important;
+}
+.layout-epilogue .slide-main-title {
+  font-size: clamp(1.8rem, 2.6vw, 2.9rem) !important;
+}
+.layout-epilogue .epilogue-dual-travelers {
+  right: 1vw !important;
+  width: 44vw !important;
+  justify-content: flex-end !important;
+}
+.layout-epilogue .traveler-lumine {
+  position: absolute !important;
+  right: 17vw !important;
+  bottom: 0 !important;
+  margin-right: 0 !important;
+  z-index: 7 !important;
+  height: 82vh !important;
+}
+.layout-epilogue .traveler-aether {
+  position: absolute !important;
+  right: 2vw !important;
+  bottom: 0 !important;
+  z-index: 6 !important;
+  height: 82vh !important;
+}
+.seven-elements-halo {
+  position: absolute !important;
+  top: 3.2vh !important;
+  right: 4vw !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 15 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(8, 12, 22, 0.85) !important;
+  backdrop-filter: blur(14px) !important;
+  padding: 6px 14px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+.element-chip {
+  padding: 3px 8px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Slide 12: 刻晴专属视频收官页 (卡片与字体协调)
+   -------------------------------------------------------------------------- */
+.layout-keqing-vlogs .slide-main-title {
+  font-size: clamp(1.8rem, 2.6vw, 2.9rem) !important;
+}
+
+/* ==========================================================================
+   各神明一角：七国历史发源与艺术风貌图文卡片 [ 图 | 文 ]
+   根据手写便签 DSCF1100.JPG 规范设计，挂载于各神明舞台角落
+   ========================================================================== */
+.character-corner-group {
+  position: absolute;
+  bottom: 4vh;
+  right: 3.5vw;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: auto;
+}
+
+.culture-origin-card {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  background: rgba(10, 16, 28, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(var(--active-rgb, 255, 255, 255), 0.45);
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: 390px;
+  max-width: 420px;
+  box-sizing: border-box;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 20px rgba(var(--active-rgb, 255, 255, 255), 0.18);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.culture-origin-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(var(--active-rgb, 255, 255, 255), 0.75);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.8), 0 0 28px rgba(var(--active-rgb, 255, 255, 255), 0.3);
+}
+
+.culture-card-thumb-wrap {
+  position: relative;
+  width: 120px;
+  min-width: 120px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.culture-card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+.culture-origin-card:hover .culture-card-thumb {
+  transform: scale(1.06);
+}
+
+.culture-card-tag {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(5, 8, 16, 0.95) 75%);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--active-element, #dfb2ff);
+  letter-spacing: 0.5px;
+  padding: 3px 4px 2px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.culture-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.culture-card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.culture-card-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--active-element, #dfb2ff);
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+.culture-card-val-en {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.culture-card-val-cn {
+  font-size: 11px;
+  font-weight: 500;
+  color: #fde68a;
+  line-height: 1.2;
+  opacity: 0.92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   整页排版多样化：现代杂志级悬浮文字与方案②拼贴实景卡片 (无方框束缚)
+   ========================================================================== */
+.keypoints-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.8vh !important;
+  margin-top: 0.8vh !important;
+}
+
+.keypoint-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-left: 3.5px solid var(--active-element) !important;
+  border-radius: 0 !important;
+  padding: 2px 0 2px 16px !important;
+  box-shadow: none !important;
+  transition: transform 0.25s ease, border-color 0.25s ease !important;
+}
+.keypoint-item:hover {
+  transform: translateX(8px) !important;
+  border-color: #ffffff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.keypoint-num {
+  display: none !important;
+}
+
+.keypoint-content {
+  flex: 1 !important;
+}
+
+.keypoint-en {
+  font-size: 30px !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.01em !important;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.98), 0 0 25px rgba(0, 0, 0, 0.85) !important;
+}
+
+.keypoint-cn {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #fef08a !important;
+  line-height: 1.42 !important;
+  opacity: 1 !important;
+  margin-top: 5px !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.98) !important;
+}
+
+/* 方案② 杂志画报实景建筑图卡 [ 图 | 图 ] */
+.editorial-photo-card {
+  width: 100%;
+  max-width: 540px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(var(--active-rgb), 0.55);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(var(--active-rgb), 0.25);
+  background: rgba(10, 16, 28, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  margin-top: 1.2vh;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.editorial-photo-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(var(--active-rgb), 0.4);
+}
+
+.photo-card-media-wrap {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+}
+.photo-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.editorial-photo-card:hover .photo-card-img {
+  transform: scale(1.05);
+}
+.photo-card-badge {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  background: rgba(8, 12, 22, 0.88);
+  border: 1px solid var(--active-element);
+  color: var(--active-element);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+}
+
+.photo-card-caption {
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8, 12, 22, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.photo-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.5px;
+}
+.photo-card-decor {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: var(--active-element);
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+
+/* 恢复神明印牌常规在各神一角的独立典雅展示 */
+.archon-placard {
+  position: absolute !important;
+  bottom: 5vh !important;
+  right: 3.5vw !important;
+  left: auto !important;
+  width: auto !important;
+  min-width: 220px !important;
+  max-width: 320px !important;
+  background: rgba(10, 14, 23, 0.82) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(var(--active-rgb), 0.45) !important;
+  border-radius: 10px !important;
+  padding: 12px 20px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(var(--active-rgb), 0.2) !important;
+  z-index: 10 !important;
+}
+
+/* 蒙德与稻妻神明在左侧，名牌随神明移至左侧一角 */
+.slide-mondstadt .archon-placard,
+.slide-inazuma .archon-placard {
+  left: 3.5vw !important;
+  right: auto !important;
+}
+
+/* 移除旧小卡片样式残留 */
+.culture-origin-card, .character-corner-group, .opera-culture-corner, .epilogue-culture-corner {
+  display: none !important;
+}
+
+/* 独立触控悬浮背景音乐控制胶囊与动态声波 (BGM Audio Floating System) */
+.bottombar-audio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-right: 8px;
+  user-select: none;
+}
+.bottombar-audio-pill:hover {
+  background: rgba(var(--active-rgb), 0.25);
+  border-color: var(--active-element);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.bottombar-audio-pill.playing {
+  background: rgba(var(--active-rgb), 0.2);
+  border-color: var(--active-element);
+  color: #fef08a;
+  box-shadow: 0 0 12px rgba(var(--active-rgb), 0.35);
+}
+.audio-wave-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  width: 12px;
+}
+.audio-wave-bar {
+  width: 2px;
+  background-color: currentColor;
+  border-radius: 1px;
+  height: 3px;
+  transition: height 0.2s ease;
+}
+.bottombar-audio-pill.playing .audio-wave-bar:nth-child(1) {
+  animation: audioWaveBar 0.9s ease-in-out infinite alternate;
+}
+.bottombar-audio-pill.playing .audio-wave-bar:nth-child(2) {
+  animation: audioWaveBar 1.2s ease-in-out 0.2s infinite alternate;
+}
+.bottombar-audio-pill.playing .audio-wave-bar:nth-child(3) {
+  animation: audioWaveBar 0.8s ease-in-out 0.4s infinite alternate;
+}
+@keyframes audioWaveBar {
+  0% { height: 3px; }
+  100% { height: 11px; }
+}
+
+/* --------------------------------------------------------------------------
+   7. 提瓦特万国建筑文明巡礼专属布局 (Layout Architecture Showcase)
+   包含：向导派蒙悬浮呼吸动效、星光气泡、华丽八国建筑流光画卷展台
+   -------------------------------------------------------------------------- */
+.layout-architecture-narrative {
+  position: absolute;
+  top: 7vh;
+  left: 4.8vw;
+  width: 58vw;
+  max-width: 980px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 派蒙向导专属舞台 (Paimon Guide Floating Stage) */
+.paimon-guide-wrap {
+  position: absolute;
+  top: 15vh;
+  right: 3.2vw;
+  width: 33vw;
+  max-width: 540px;
+  height: 80vh;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+
+/* 派蒙向导星光对话气泡 (悬浮在派蒙左侧，指向派蒙，避让顶栏) */
+.paimon-speech-bubble {
+  position: absolute;
+  left: -200px;
+  top: 20px;
+  width: 320px;
+  background: rgba(14, 17, 26, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(250, 204, 21, 0.65);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(250, 204, 21, 0.25);
+  pointer-events: auto;
+  animation: bubbleFloat 3.8s ease-in-out infinite;
+  z-index: 20;
+}
+
+.paimon-speech-bubble::after {
+  content: "";
+  position: absolute;
+  top: 30px;
+  right: -10px;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  border-width: 8px 0 8px 10px;
+  border-style: solid;
+  border-color: transparent transparent transparent rgba(250, 204, 21, 0.85);
+}
+
+.bubble-sparkle {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #facc15;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bubble-text-en {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.35;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.bubble-text-cn {
+  font-size: 12px;
+  font-weight: 500;
+  color: #fef08a;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+/* 派蒙悬浮立绘与星宿光晕 */
+.paimon-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.paimon-visual {
+  height: 48vh;
+  max-height: 520px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 30px rgba(250, 204, 21, 0.4));
+  animation: paimonHover 3.6s ease-in-out infinite;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+}
+
+.paimon-visual:hover {
+  transform: scale(1.05) translateY(-8px);
+}
+
+.paimon-floating-halo {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.22) 0%, rgba(250, 204, 21, 0.08) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: -1;
+  animation: haloPulse 4s ease-in-out infinite alternate;
+}
+
+.paimon-placard {
+  position: absolute !important;
+  bottom: 3vh !important;
+  right: 50% !important;
+  transform: translateX(50%) !important;
+  width: auto !important;
+  min-width: 240px !important;
+  pointer-events: auto !important;
+  border-color: rgba(250, 204, 21, 0.6) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(250, 204, 21, 0.25) !important;
+}
+
+/* 八国建筑全景画卷微网格展台 (4列 x 2行) */
+.architecture-cards-scroll {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.arch-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 18, 28, 0.78);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  padding: 6px 9px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: cardStaggerIn 0.5s ease forwards;
+}
+
+.arch-card:hover {
+  background: rgba(25, 30, 48, 0.92);
+  border-color: #facc15;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(250, 204, 21, 0.35);
+  transform: translateY(-2px);
+}
+
+.arch-card-thumb-wrap {
+  position: relative;
+  width: 68px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.arch-card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.arch-card:hover .arch-card-thumb {
+  transform: scale(1.12);
+}
+
+.arch-card-nation {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #fef08a;
+  text-align: center;
+  padding: 1px 0;
+  letter-spacing: 0.5px;
+}
+
+.arch-card-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.arch-card-title-en {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.arch-card-title-cn {
+  font-size: 10px;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 动效关键帧 */
+@keyframes paimonHover {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(1.2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes bubbleFloat {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes haloPulse {
+  0% { opacity: 0.6; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes cardStaggerIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

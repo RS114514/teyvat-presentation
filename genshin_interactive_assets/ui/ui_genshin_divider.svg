@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 60" width="1200" height="60">
+  <defs>
+    <linearGradient id="gold-grad-left" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d3bc8e" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#e8d9b5" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#f5e8cd" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="gold-grad-right" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f5e8cd" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#e8d9b5" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#d3bc8e" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- 左金线 -->
+  <line x1="100" y1="30" x2="550" y2="30" stroke="url(#gold-grad-left)" stroke-width="2"/>
+  <!-- 右金线 -->
+  <line x1="650" y1="30" x2="1100" y2="30" stroke="url(#gold-grad-right)" stroke-width="2"/>
+  <!-- 左装饰小菱形 -->
+  <polygon points="450,30 456,26 462,30 456,34" fill="#e8d9b5"/>
+  <polygon points="520,30 528,24 536,30 528,36" fill="#f5e8cd"/>
+  <!-- 右装饰小菱形 -->
+  <polygon points="664,30 672,24 680,30 672,36" fill="#f5e8cd"/>
+  <polygon points="738,30 744,26 750,30 744,34" fill="#e8d9b5"/>
+  <!-- 中央八芒星与菱形核心 -->
+  <polygon points="600,10 605,25 620,30 605,35 600,50 595,35 580,30 595,25" fill="#f8efda" stroke="#bda16a" stroke-width="1.5"/>
+  <circle cx="600" cy="30" r="3.5" fill="#d3bc8e"/>
+</svg>

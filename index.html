@@ -1,0 +1,3669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <link rel="icon" type="image/png" href="favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>《原神》5分钟提瓦特全景交互课件 | 希沃大屏杂志级交互版</title>
+
+  <!-- 引入 10 大页面杂志级差异化布局与风景通透样式表 -->
+  <link rel="stylesheet" href="module_layouts.css">
+
+  <!-- 引入游戏原汁原味专属转场样式库 -->
+  <link rel="stylesheet" href="module_transitions.css">
+
+  <style>
+    /* ==========================================================================
+       1. 全局设计变量与希沃大屏抗锯齿优化
+       ========================================================================== */
+    :root {
+      --color-anemo: #34e5a7;
+      --color-geo: #f4c053;
+      --color-electro: #ca7cff;
+      --color-dendro: #9de337;
+      --color-hydro: #2ec5ff;
+      --color-pyro: #ff5722;
+      --color-cryo: #9ee6ff;
+      --color-celestia: #dfb2ff;
+
+      --active-element: var(--color-celestia);
+      --active-rgb: 223, 178, 255;
+
+      --font-display: -apple-system, BlinkMacSystemFont, "Cinzel", "Times New Roman", "Songti SC", "Noto Serif SC", serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #06080d;
+      font-family: var(--font-body);
+      color: #f3f4f6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* 希沃大屏 16:9 画幅视口容器 */
+    #deck-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      perspective: 1400px;
+    }
+
+    /* ==========================================================================
+       2. 双缓冲 DOM 视窗架构 (Double-Buffered Viewport System)
+       ========================================================================== */
+    .deck-viewport {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      will-change: transform, opacity;
+      pointer-events: none;
+    }
+
+    /* 当前展示层 */
+    .deck-viewport-current {
+      opacity: 1;
+      z-index: 20;
+      pointer-events: auto;
+      transform: scale(1) translateZ(0);
+    }
+
+    /* 下一页准备层 */
+    .deck-viewport-incoming {
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+      transform: scale(1.04) translateZ(-40px);
+    }
+
+    /* ==========================================================================
+       3. 层次空间景深系统 (Visual Depth System)
+       ========================================================================== */
+    /* Layer 1: 全景风景底图 (彻底移除死黑覆盖，通透明亮，视距优化) */
+    .layer-scenery {
+      position: absolute;
+      inset: -2%;
+      width: 104%;
+      height: 104%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: contrast(1.10) saturate(1.18) brightness(1.04);
+      transform: translate3d(0, 0, 0);
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform;
+      z-index: 1;
+    }
+
+    /* 遮罩优化：严格控制暗角遮罩在 35%~45% 范围，保证 2.5K 超清风景后排清晰可见 */
+    .layer-scenery::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(6, 8, 14, 0.44) 0%, rgba(6, 8, 14, 0.35) 42%, rgba(6, 8, 14, 0.16) 75%, rgba(6, 8, 14, 0.08) 100%),
+                  radial-gradient(circle at 62% 50%, transparent 42%, rgba(6, 8, 14, 0.38) 100%);
+      pointer-events: none;
+    }
+
+    /* 至冬极寒北境夜空左上角暗晕优化：自然融入极夜星空，隐去底图原生微标 */
+    .slide-snezhnaya .layer-scenery::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 32vw;
+      height: 25vh;
+      background: radial-gradient(ellipse at 0% 0%, rgba(6, 10, 20, 0.98) 0%, rgba(6, 10, 20, 0.88) 48%, transparent 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Layer 2: 杂志化超大英文半透明背景水印 */
+    .layer-watermark {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding-left: 4vw;
+      overflow: hidden;
+    }
+
+    .watermark-text {
+      font-family: var(--font-display);
+      font-size: clamp(6.5rem, 16vw, 16rem);
+      font-weight: 900;
+      line-height: 0.82;
+      letter-spacing: -0.04em;
+      color: rgba(255, 255, 255, 0.05);
+      -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.10);
+      white-space: nowrap;
+      text-transform: uppercase;
+      transform: translate3d(0, 0, 0);
+    }
+
+    /* Layer 3: 免抠神明立绘与角色穿透排版容器 */
+    .layer-character-wrap {
+      position: absolute;
+      top: 0;
+      right: 2vw;
+      width: 48vw;
+      height: 100vh;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+    }
+
+    /* 角色背景专属同心柔和元素光晕 (纯 CSS，零 3D 依赖) */
+    .layer-character-wrap::before {
+      content: "";
+      position: absolute;
+      width: clamp(380px, 42vw, 680px);
+      height: clamp(380px, 42vw, 680px);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(var(--active-rgb), 0.28) 0%, rgba(var(--active-rgb), 0.08) 45%, transparent 70%);
+      filter: blur(32px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* 立体角色舞台与触控倾斜容器 */
+    .character-stage {
+      position: relative;
+      width: 100%;
+      height: 86vh;
+      max-height: 920px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      z-index: 6;
+      pointer-events: auto;
+      cursor: default;
+    }
+
+    .character-visual {
+      position: relative;
+      height: 85vh;
+      max-height: 920px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 45px rgba(var(--active-rgb), 0.32));
+      animation: charFloat 5.5s ease-in-out infinite alternate;
+      will-change: transform;
+      transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);
+      transform-style: preserve-3d;
+      pointer-events: auto;
+    }
+
+    @keyframes charFloat {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(0.6deg); }
+      100% { transform: translateY(4px) rotate(-0.4deg); }
+    }
+
+    /* 角色身份印牌 (Archon Placard) */
+    .archon-placard {
+      position: absolute;
+      bottom: 6.8vh;
+      left: 1vw;
+      background: rgba(10, 15, 26, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-left: 3.5px solid var(--active-element);
+      padding: 8px 18px;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      pointer-events: auto;
+      z-index: 10;
+      transition: border-color 0.5s ease;
+    }
+
+    .placard-nation {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--active-element);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .placard-title-cn {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .placard-title-en {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-top: 1px;
+    }
+
+    /* ==========================================================================
+       4. 四大杂志级排版矩阵 (Layout Matrices: A / B / C / D / Epilogue)
+       ========================================================================== */
+
+    /* --------------------------------------------------------------------------
+       Layout A: 经典非对称穿透式 (叙事左 56vw, 立绘右 44vw)
+       -------------------------------------------------------------------------- */
+    .layout-A .layer-narrative {
+      position: absolute;
+      top: 9vh;
+      left: 6vw;
+      width: 50vw;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 1.6vh;
+      pointer-events: auto;
+    }
+
+    /* --------------------------------------------------------------------------
+       Layout B: 纳塔 50/50 烈火与部族张力分屏式
+       -------------------------------------------------------------------------- */
+    .layout-B .natlan-split-container {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .layout-B .split-half-left {
+      width: 50vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+      border-right: 2px solid rgba(255, 87, 34, 0.5);
+      box-shadow: 10px 0 40px rgba(255, 87, 34, 0.3);
+    }
+
+    .layout-B .split-half-right {
+      width: 50vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at 70% 50%, rgba(255, 138, 76, 0.15) 0%, transparent 70%);
+    }
+
+    .layout-B .layer-narrative {
+      position: absolute;
+      top: 9vh;
+      left: 4.5vw;
+      width: 32vw;
+      max-width: 500px;
+      z-index: 12;
+      display: flex;
+      flex-direction: column;
+      gap: 1.6vh;
+      pointer-events: auto;
+      background: transparent;
+      backdrop-filter: none;
+      padding: 0;
+      border: none;
+      box-shadow: none;
+    }
+
+    /* --------------------------------------------------------------------------
+       Layout C: 戏曲宽银幕舞台长卷式 (《神女劈观》云堇与申鹤对望拱卫)
+       -------------------------------------------------------------------------- */
+    .layout-C .opera-stage-banner {
+      position: absolute;
+      top: 6vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80vw;
+      max-width: 1200px;
+      text-align: center;
+      z-index: 12;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layout-C .opera-character-left {
+      position: absolute;
+      bottom: 0;
+      left: 1.5vw;
+      width: 32vw;
+      height: 82vh;
+      z-index: 7;
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+    }
+
+    .layout-C .opera-character-right {
+      position: absolute;
+      bottom: 0;
+      right: 1.5vw;
+      width: 32vw;
+      height: 82vh;
+      z-index: 7;
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+
+    .layout-C .opera-character-img {
+      height: 80vh;
+      max-height: 850px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 35px rgba(245, 158, 11, 0.35));
+      animation: charFloat 5s ease-in-out infinite alternate;
+    }
+
+    .layout-C .opera-keypoints-row {
+      position: absolute;
+      bottom: 15vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 58vw;
+      max-width: 960px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      z-index: 12;
+      pointer-events: auto;
+    }
+
+    .layout-C .opera-keypoint-card {
+      background: transparent;
+      backdrop-filter: none;
+      border: none;
+      border-left: 3px solid rgba(245, 158, 11, 0.85);
+      border-radius: 0;
+      padding: 8px 16px;
+      box-shadow: none;
+      transition: transform 0.25s ease;
+    }
+
+    .layout-C .layer-narrative {
+      position: absolute;
+      top: auto;
+      bottom: 4.5vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 56vw;
+      max-width: 900px;
+      z-index: 12;
+      pointer-events: auto;
+    }
+
+    /* --------------------------------------------------------------------------
+       Layout D: 智慧之树垂直流线排版 (须弥生命藤蔓与阶梯要点)
+       -------------------------------------------------------------------------- */
+    .layout-D .dendro-lifeline {
+      position: absolute;
+      left: 5vw;
+      top: 10vh;
+      bottom: 8vh;
+      width: 3px;
+      background: linear-gradient(to bottom, #9de337, rgba(157, 227, 55, 0.2));
+      box-shadow: 0 0 15px rgba(157, 227, 55, 0.7);
+      z-index: 9;
+    }
+
+    .layout-D .layer-narrative {
+      position: absolute;
+      top: 9vh;
+      left: 7.5vw;
+      width: 48vw;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 1.6vh;
+      pointer-events: auto;
+    }
+
+    .layout-D .keypoint-item:nth-child(1) { margin-left: 0; }
+    .layout-D .keypoint-item:nth-child(2) { margin-left: 1.8vw; }
+    .layout-D .keypoint-item:nth-child(3) { margin-left: 3.6vw; }
+
+    /* --------------------------------------------------------------------------
+       Slide 10: 结语殿堂级排版 (文明之桥 · 双生旅行者与创作者名牌)
+       -------------------------------------------------------------------------- */
+    .layout-epilogue .layer-narrative {
+      position: absolute;
+      top: 9vh;
+      left: 6vw;
+      width: 46vw;
+      z-index: 12;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8vh;
+      pointer-events: auto;
+    }
+
+    .layout-epilogue .epilogue-dual-travelers {
+      position: absolute;
+      top: 0;
+      right: 2vw;
+      width: 48vw;
+      height: 100vh;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    .layout-epilogue .traveler-img {
+      height: 80vh;
+      max-height: 840px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 45px rgba(0,0,0,0.85)) drop-shadow(0 0 40px rgba(223, 178, 255, 0.35));
+      animation: charFloat 5s ease-in-out infinite alternate;
+    }
+    .layout-epilogue .traveler-lumine {
+      margin-right: -7vw;
+      z-index: 7;
+    }
+    .layout-epilogue .traveler-aether {
+      z-index: 6;
+    }
+
+    /* 创作者殿堂印章卡 (黄金比例右下浮动排版) */
+    .epilogue-creator-plaque {
+      position: absolute;
+      bottom: 7vh;
+      right: 3vw;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      background: rgba(12, 16, 26, 0.82);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(223, 178, 255, 0.45);
+      border-radius: 12px;
+      padding: 14px 26px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7), 0 0 30px rgba(223, 178, 255, 0.2);
+      z-index: 15;
+      pointer-events: auto;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .epilogue-creator-plaque:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 45px rgba(223, 178, 255, 0.35);
+    }
+
+    .creator-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .creator-role {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--color-celestia);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .creator-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .creator-divider-line {
+      width: 1px;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* ==========================================================================
+       5. 文本与要点排版规范 (75% 英文主体 + 25% 辅助中文)
+       ========================================================================== */
+    .badge-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .badge-element {
+      background: rgba(var(--active-rgb), 0.18);
+      border: 1px solid rgba(var(--active-rgb), 0.5);
+      color: var(--active-element);
+    }
+
+    .badge-culture {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #cbd5e1;
+    }
+
+    .title-group {
+      margin-top: 0.4vh;
+    }
+
+    .slide-main-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.1rem, 3.2vw, 3.6rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      text-transform: uppercase;
+    }
+
+    .slide-sub-title {
+      font-size: clamp(1rem, 1.25vw, 1.35rem);
+      font-weight: 500;
+      letter-spacing: 2px;
+      color: #94a3b8;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slide-sub-title::before {
+      content: "";
+      display: inline-block;
+      width: 14px;
+      height: 2px;
+      background: var(--active-element);
+    }
+
+    .gold-divider {
+      width: 100%;
+      max-width: 520px;
+      height: 14px;
+      background: url('genshin_interactive_assets/ui/ui_genshin_divider.svg') no-repeat left center;
+      background-size: contain;
+      margin: 0.3vh 0;
+      opacity: 0.9;
+      filter: drop-shadow(0 0 6px rgba(var(--active-rgb), 0.45));
+    }
+
+    .element-badge-svg {
+      width: 15px;
+      height: 15px;
+      object-fit: contain;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 5px var(--active-element));
+    }
+
+    /* 3 大核心要点错落排版 */
+    .keypoints-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
+    }
+
+    .keypoint-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(12, 18, 32, 0.62);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-left: 3.5px solid var(--active-element);
+      border-radius: 10px;
+      padding: 13px 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .keypoint-item:hover {
+      transform: translateX(8px);
+      border-color: rgba(var(--active-rgb), 0.55);
+      background: rgba(15, 24, 44, 0.82);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 25px rgba(var(--active-rgb), 0.22);
+    }
+
+    .keypoint-num {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--active-element);
+      background: rgba(var(--active-rgb), 0.18);
+      padding: 3px 9px;
+      border-radius: 6px;
+      line-height: 1.2;
+      letter-spacing: 0.5px;
+    }
+
+    .keypoint-content {
+      flex: 1;
+    }
+
+    .keypoint-en {
+      font-size: 30px !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+      line-height: 1.25 !important;
+      letter-spacing: 0.01em !important;
+      text-shadow: 0 3px 14px rgba(0, 0, 0, 0.95), 0 0 24px rgba(0, 0, 0, 0.8) !important;
+    }
+
+    .keypoint-cn {
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      color: rgba(253, 230, 138, 0.98) !important;
+      margin-top: 5px !important;
+      line-height: 1.4 !important;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95) !important;
+    }
+
+    /* 独立触控悬浮演讲提词胶囊与半透明抽屉 (Speaker Cue Floating System) */
+    
+    .bottombar-cue-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-right: 8px;
+      user-select: none;
+    }
+    .bottombar-cue-pill:hover {
+      background: rgba(var(--active-rgb), 0.25);
+      border-color: var(--active-element);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* 独立触控悬浮背景音乐控制胶囊与动态声波 (BGM Audio Floating System) */
+    .bottombar-audio-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      margin-right: 8px;
+      user-select: none;
+    }
+    .bottombar-audio-pill:hover {
+      background: rgba(var(--active-rgb), 0.25);
+      border-color: var(--active-element);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .bottombar-audio-pill.playing {
+      background: rgba(var(--active-rgb), 0.2);
+      border-color: var(--active-element);
+      color: #fef08a;
+      box-shadow: 0 0 12px rgba(var(--active-rgb), 0.35);
+    }
+    .audio-wave-bars {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 12px;
+      width: 12px;
+    }
+    .audio-wave-bar {
+      width: 2px;
+      background-color: currentColor;
+      border-radius: 1px;
+      height: 3px;
+      transition: height 0.2s ease;
+    }
+    .bottombar-audio-pill.playing .audio-wave-bar:nth-child(1) {
+      animation: audioWaveBar 0.9s ease-in-out infinite alternate;
+    }
+    .bottombar-audio-pill.playing .audio-wave-bar:nth-child(2) {
+      animation: audioWaveBar 1.2s ease-in-out 0.2s infinite alternate;
+    }
+    .bottombar-audio-pill.playing .audio-wave-bar:nth-child(3) {
+      animation: audioWaveBar 0.8s ease-in-out 0.4s infinite alternate;
+    }
+    @keyframes audioWaveBar {
+      0% { height: 3px; }
+      100% { height: 11px; }
+    }
+
+    .speaker-cue-toggle {
+      position: fixed;
+      bottom: 54px;
+      left: 3vw;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: rgba(10, 16, 28, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(var(--active-rgb), 0.45);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      z-index: 120;
+      transition: all 0.25s ease;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+    }
+    .speaker-cue-toggle:hover {
+      background: rgba(var(--active-rgb), 0.25);
+      border-color: var(--active-element);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+    .speaker-cue-drawer {
+      position: fixed;
+      bottom: 96px;
+      left: 3vw;
+      width: clamp(380px, 44vw, 700px);
+      background: rgba(8, 12, 22, 0.94);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(var(--active-rgb), 0.45);
+      border-left: 4px solid var(--active-element);
+      border-radius: 12px;
+      padding: 16px 22px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.78), 0 0 32px rgba(var(--active-rgb), 0.25);
+      z-index: 130;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    .speaker-cue-drawer.active {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .speaker-cue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .speaker-cue-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--active-element);
+      text-transform: uppercase;
+    }
+    .speaker-cue-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .speaker-cue-close:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .speaker-cue-body {
+      font-size: clamp(0.88rem, 0.98vw, 1.05rem);
+      color: #f1f5f9;
+      line-height: 1.55;
+      font-style: italic;
+    }
+
+    /* 封面专属名牌卡 */
+    .cover-credits-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(223, 178, 255, 0.35);
+      border-radius: 8px;
+      padding: 8px 18px;
+      margin-top: 0.6vh;
+    }
+
+    .cover-credit-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cover-credit-role {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--active-element);
+      text-transform: uppercase;
+    }
+
+    .cover-credit-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* ==========================================================================
+       6. 顶部与底部全局控制栏 (Chrome TopBar & BottomBar)
+       ========================================================================== */
+    .chrome-topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      background: linear-gradient(to bottom, rgba(6, 8, 13, 0.85) 0%, rgba(6, 8, 13, 0) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 3vw;
+      z-index: 100;
+      pointer-events: auto;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--active-element);
+      box-shadow: 0 0 10px var(--active-element);
+      transition: background 0.5s ease;
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #f1f5f9;
+      text-transform: uppercase;
+    }
+
+    .topbar-breadcrumb {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .nav-control-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+    }
+    .nav-control-btn:hover {
+      color: #fff;
+    }
+
+    /* 顶部全局常驻署名 */
+    .topbar-credits {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(10px);
+      padding: 5px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+    .topbar-credits strong {
+      color: #fff;
+    }
+
+    /* 底部全局控制栏 */
+    .chrome-bottombar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: linear-gradient(to top, rgba(6, 8, 13, 0.9) 0%, rgba(6, 8, 13, 0) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 3vw;
+      z-index: 100;
+      pointer-events: auto;
+    }
+
+    .bottombar-shortcuts {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .shortcut-key {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: #e2e8f0;
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 10px;
+    }
+
+    /* 底部进度标尺 (10 个页面) */
+    .timeline-ruler {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ruler-tick {
+      width: 28px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .ruler-tick:hover {
+      background: rgba(255, 255, 255, 0.5);
+      transform: scaleY(1.5);
+    }
+    .ruler-tick.active {
+      background: var(--active-element);
+      box-shadow: 0 0 10px var(--active-element);
+      width: 44px;
+    }
+
+    .bottombar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slide-counter {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      color: #e2e8f0;
+      letter-spacing: 1px;
+    }
+
+    /* 希沃大屏舒适触控翻页大键 (80×80px) */
+    .seewo-touch-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 90;
+      transition: all 0.25s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .seewo-touch-btn:hover {
+      background: rgba(var(--active-rgb), 0.3);
+      border-color: var(--active-element);
+      color: #fff;
+      transform: translateY(-50%) scale(1.08);
+    }
+    .seewo-touch-prev { left: 1.5vw; }
+    .seewo-touch-next { right: 1.5vw; }
+
+    /* ==========================================================================
+       7. 真实游戏视觉资产驱动转场系统 (Mix-Blend-Mode: Screen)
+       ========================================================================== */
+    .cinematic-trans-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      pointer-events: none;
+      opacity: 0;
+      mix-blend-mode: screen;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      will-change: opacity, transform;
+    }
+    .cinematic-trans-layer.active {
+      opacity: 1;
+    }
+
+    /* 7.1 蒙德千风 (青色风刃割裂 + 风之羽毛) */
+    #trans-wind.active .wind-blade-cross-1 {
+      position: absolute;
+      width: 140vw;
+      height: 12px;
+      background: linear-gradient(90deg, transparent, #34e5a7, #fff, #34e5a7, transparent);
+      box-shadow: 0 0 35px #34e5a7, 0 0 70px #34e5a7;
+      transform: rotate(-32deg);
+      animation: windSlash1 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #trans-wind.active .wind-blade-cross-2 {
+      position: absolute;
+      width: 140vw;
+      height: 8px;
+      background: linear-gradient(90deg, transparent, #2dd4bf, #fff, #2dd4bf, transparent);
+      box-shadow: 0 0 30px #2dd4bf;
+      transform: rotate(35deg);
+      animation: windSlash2 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #trans-wind.active .wind-crest-symbol {
+      animation: crestExpand 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes windSlash1 {
+      0% { transform: rotate(-32deg) translateX(-100vw); opacity: 0; }
+      40% { opacity: 1; }
+      100% { transform: rotate(-32deg) translateX(100vw); opacity: 0; }
+    }
+    @keyframes windSlash2 {
+      0% { transform: rotate(35deg) translateX(100vw); opacity: 0; }
+      40% { opacity: 1; }
+      100% { transform: rotate(35deg) translateX(-100vw); opacity: 0; }
+    }
+    @keyframes crestExpand {
+      0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
+      50% { transform: scale(1.3) rotate(180deg); opacity: 1; filter: drop-shadow(0 0 45px currentColor); }
+      100% { transform: scale(2.2) rotate(360deg); opacity: 0; }
+    }
+
+    /* 7.2 璃月天星下坠 (天星陨石实机虚影 + 六边形岩盾震颤) */
+    #trans-rock.active .rock-meteor-core {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, #fff 0%, #f4c053 45%, #b45309 80%, transparent 100%);
+      box-shadow: 0 0 80px #f4c053, 0 0 160px #f59e0b;
+      border-radius: 50%;
+      animation: meteorImpact 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    #trans-rock.active .rock-hex-shield {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border: 3px solid rgba(244, 192, 83, 0.85);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      box-shadow: 0 0 50px rgba(244, 192, 83, 0.7), inset 0 0 40px rgba(244, 192, 83, 0.4);
+      animation: shieldPulse 0.75s ease-out forwards;
+    }
+    @keyframes meteorImpact {
+      0% { transform: translate3d(0, -70vh, 0) scale(0.4); opacity: 0; }
+      45% { transform: translate3d(0, 0, 0) scale(1.2); opacity: 1; }
+      100% { transform: translate3d(0, 20vh, 0) scale(2.8); opacity: 0; }
+    }
+    @keyframes shieldPulse {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(2.0); opacity: 0; }
+    }
+
+    /* 7.3 稻妻雷神无想一刀 (紫白电弧切线 + 雷云威压闪烁) */
+    #trans-slash.active .slash-flash-screen {
+      position: absolute;
+      inset: 0;
+      background: #7e22ce;
+      animation: slashFlash 0.75s ease-out forwards;
+    }
+    #trans-slash.active .slash-beam-line {
+      position: absolute;
+      width: 150vw;
+      height: 16px;
+      background: linear-gradient(90deg, transparent, #ca7cff, #fff, #ca7cff, transparent);
+      box-shadow: 0 0 40px #ca7cff, 0 0 90px #9333ea, 0 0 150px #fff;
+      transform: rotate(-28deg);
+      animation: slashBeam 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes slashFlash {
+      0% { opacity: 0; }
+      20% { opacity: 0.95; }
+      40% { opacity: 0.3; }
+      60% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+    @keyframes slashBeam {
+      0% { transform: rotate(-28deg) scaleX(0.1); opacity: 0; }
+      35% { transform: rotate(-28deg) scaleX(1); opacity: 1; }
+      100% { transform: rotate(-28deg) scaleX(1.3) translateY(40px); opacity: 0; }
+    }
+
+    /* 7.4 须弥草神心景幻成 (绿色全息扫描 + 智慧叶脉展开) */
+    #trans-dendro.active .dendro-scan-grid {
+      position: absolute;
+      width: 650px;
+      height: 650px;
+      border: 2px solid rgba(157, 227, 55, 0.7);
+      border-radius: 50%;
+      box-shadow: 0 0 60px rgba(157, 227, 55, 0.6), inset 0 0 50px rgba(157, 227, 55, 0.4);
+      animation: dendroScan 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes dendroScan {
+      0% { transform: scale(0.2); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    /* 7.5 枫丹歌剧院水幕双向拉帷 */
+    #trans-hydro.active .hydro-curtain-left {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50vw;
+      height: 100vh;
+      background: linear-gradient(to right, rgba(46, 197, 255, 0.85), transparent);
+      box-shadow: 0 0 50px #2ec5ff;
+      animation: curtainLeft 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #trans-hydro.active .hydro-curtain-right {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 50vw;
+      height: 100vh;
+      background: linear-gradient(to left, rgba(46, 197, 255, 0.85), transparent);
+      box-shadow: 0 0 50px #2ec5ff;
+      animation: curtainRight 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes curtainLeft {
+      0% { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(-50vw); opacity: 0; }
+    }
+    @keyframes curtainRight {
+      0% { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(50vw); opacity: 0; }
+    }
+
+    /* 7.6 纳塔部族圣火与熔岩龙息爆发 */
+    #trans-pyro.active .pyro-blast-core {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, #fff 0%, #ff5722 45%, #b91c1c 80%, transparent 100%);
+      box-shadow: 0 0 90px #ff5722, 0 0 180px #ea580c;
+      border-radius: 50%;
+      animation: pyroBlast 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes pyroBlast {
+      0% { transform: scale(0.2); opacity: 0; }
+      40% { transform: scale(1.4); opacity: 1; }
+      100% { transform: scale(3.0); opacity: 0; }
+    }
+
+    /* 7.7 至冬极地暴风雪与严寒破冰 */
+    #trans-cryo.active .cryo-ice-shard {
+      position: absolute;
+      width: 140vw;
+      height: 140vh;
+      background: radial-gradient(circle, transparent 40%, rgba(158, 230, 255, 0.5) 75%, rgba(158, 230, 255, 0.9) 100%);
+      box-shadow: inset 0 0 80px #9ee6ff;
+      animation: cryoFreeze 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes cryoFreeze {
+      0% { transform: scale(1.3); opacity: 0; }
+      40% { transform: scale(1.0); opacity: 1; }
+      100% { transform: scale(0.85); opacity: 0; }
+    }
+
+    /* 7.8 神女劈观双向红绸与传统水墨晕染 */
+    #trans-opera.active .opera-ink-circle {
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ef4444 0%, #991b1b 60%, transparent 100%);
+      box-shadow: 0 0 60px #ef4444;
+      animation: inkBloom 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #trans-opera.active .opera-ribbon-left {
+      position: absolute;
+      width: 100vw;
+      height: 40px;
+      background: linear-gradient(90deg, transparent, #ef4444, #fca5a5, transparent);
+      box-shadow: 0 0 40px #ef4444;
+      transform: rotate(-15deg);
+      animation: ribbonFlow 0.75s ease-out forwards;
+    }
+    @keyframes inkBloom {
+      0% { transform: scale(0.2); opacity: 0; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    @keyframes ribbonFlow {
+      0% { transform: rotate(-15deg) translateX(-80vw); opacity: 0; }
+      40% { opacity: 1; }
+      100% { transform: rotate(-15deg) translateX(80vw); opacity: 0; }
+    }
+
+    /* 7.9 结语七元素同心圆与星盘引爆 */
+    #trans-celestia.active .celestia-ring-blast {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      border: 3px solid rgba(223, 178, 255, 0.9);
+      box-shadow: 0 0 80px rgba(223, 178, 255, 0.9), inset 0 0 60px rgba(223, 178, 255, 0.6);
+      animation: celestiaBurst 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes celestiaBurst {
+      0% { transform: scale(0.2); opacity: 0; }
+      45% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(2.6); opacity: 0; }
+    }
+
+    /* 瞬黑遮罩 */
+    #blackout-mask {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #blackout-mask.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 震屏动效 */
+    .screen-shake {
+      animation: screenShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes screenShake {
+      10%, 90% { transform: translate3d(-3px, 2px, 0); }
+      20%, 80% { transform: translate3d(4px, -3px, 0); }
+      30%, 50%, 70% { transform: translate3d(-5px, 3px, 0); }
+      40%, 60% { transform: translate3d(5px, -2px, 0); }
+    }
+
+    /* Stagger 错落入场动效 */
+    .stagger-in {
+      animation: staggerSlideIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes staggerSlideIn {
+      from {
+        opacity: 0;
+        transform: translate3d(-18px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    /* ==========================================================================
+       全局排版多样化与特色布局系统 (Diverse Layout & Anti-Collision System)
+       ========================================================================== */
+
+    /* Slide 01: 序幕 · 星海双子 (文字左 38vw，双生右 48vw 纵深，间距 > 250px) */
+    .slide-prologue .layer-narrative {
+      top: 9vh !important;
+      left: 5vw !important;
+      width: 38vw !important;
+      max-width: 600px !important;
+    }
+    .slide-prologue .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+    }
+    .slide-prologue .layer-character-wrap {
+      right: 2vw !important;
+      width: 48vw !important;
+    }
+
+    /* Slide 02: 蒙德 · 自由之都 (特色排版：文字靠右！温迪靠左！) */
+    .slide-mondstadt .layer-narrative {
+      left: auto !important;
+      right: 5vw !important;
+      width: 38vw !important;
+      max-width: 620px !important;
+      align-items: flex-start !important;
+    }
+    .slide-mondstadt .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95), 0 0 35px rgba(52, 229, 167, 0.4) !important;
+    }
+    .slide-mondstadt .slide-sub-title {
+      color: #a7f3d0 !important;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 20px rgba(0, 0, 0, 0.8) !important;
+    }
+    .slide-mondstadt .badge-pill {
+      background: rgba(10, 16, 28, 0.82) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+    }
+    .slide-mondstadt .layer-character-wrap {
+      right: auto !important;
+      left: 3vw !important;
+      width: 44vw !important;
+    }
+    .slide-mondstadt .character-stage {
+      justify-content: flex-start !important;
+    }
+    .slide-mondstadt .character-visual {
+      margin-left: 2vw !important;
+    }
+    .slide-mondstadt .archon-placard {
+      left: auto !important;
+      right: 2vw !important;
+    }
+
+    /* Slide 03: 璃月 · 契约商港 (文字靠左 36vw，钟离靠右，中央露出千帆商港) */
+    .slide-liyue .layer-narrative {
+      left: 5.5vw !important;
+      width: 36vw !important;
+      max-width: 580px !important;
+    }
+    .slide-liyue .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+    }
+    .slide-liyue .layer-character-wrap {
+      right: 2vw !important;
+      width: 46vw !important;
+    }
+
+    /* Slide 04: 稻妻 · 永恒雷鸣 (特色排版：文字靠右！雷电将军靠左！) */
+    .slide-inazuma .layer-narrative {
+      left: auto !important;
+      right: 5.5vw !important;
+      width: 38vw !important;
+      max-width: 620px !important;
+      align-items: flex-start !important;
+    }
+    .slide-inazuma .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+      color: #ffffff !important;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95), 0 0 35px rgba(202, 124, 255, 0.6) !important;
+    }
+    .slide-inazuma .slide-sub-title {
+      color: #f3e8ff !important;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95) !important;
+    }
+    .slide-inazuma .keypoint-en {
+      color: #ffffff !important;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 22px rgba(202, 124, 255, 0.5) !important;
+    }
+    .slide-inazuma .keypoint-cn {
+      color: #f5d0fe !important;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95) !important;
+    }
+    .slide-inazuma .layer-character-wrap {
+      right: auto !important;
+      left: 2vw !important;
+      width: 45vw !important;
+    }
+    .slide-inazuma .character-stage {
+      justify-content: flex-start !important;
+    }
+    .slide-inazuma .character-visual {
+      margin-left: 2vw !important;
+    }
+    .slide-inazuma .archon-placard {
+      left: auto !important;
+      right: 2vw !important;
+    }
+
+    /* Slide 05: 须弥 · 智慧绿茵 (智慧藤蔓阶梯流线，文字紧凑 35vw，神树通透) */
+    .slide-sumeru .layer-narrative {
+      left: 7.5vw !important;
+      width: 35vw !important;
+      max-width: 560px !important;
+    }
+    .slide-sumeru .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+    }
+    .slide-sumeru .layer-character-wrap {
+      right: 1vw !important;
+      width: 48vw !important;
+    }
+
+    /* Slide 06: 枫丹 · 审判法庭 (法式微框 34vw，芙宁娜靠右水幕舞台完全展开) */
+    .slide-fontaine .layer-narrative {
+      left: 5.5vw !important;
+      width: 34vw !important;
+      max-width: 550px !important;
+    }
+    .slide-fontaine .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+    }
+    .slide-fontaine .layer-character-wrap {
+      right: 0vw !important;
+      width: 48vw !important;
+    }
+
+    /* Slide 07: 纳塔 · 圣火竞技场 (通屏战火，彻底移除割裂中缝，玛薇卡帅气跨车) */
+    .slide-natlan .layer-narrative {
+      top: 9vh !important;
+      left: 4.5vw !important;
+      width: 32vw !important;
+      max-width: 500px !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border: none !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    .slide-natlan .slide-main-title {
+      font-size: clamp(1.8rem, 2.6vw, 2.9rem) !important;
+    }
+    .slide-natlan .keypoint-item {
+      border-left-color: #ff5722 !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 4px 0 4px 16px !important;
+    }
+    .slide-natlan .layer-character-wrap {
+      right: -2vw !important;
+      width: 54vw !important;
+    }
+    .slide-natlan .character-visual {
+      right: 0vw !important;
+    }
+    .slide-natlan .split-divider-seam,
+    .slide-natlan .polar-split-container {
+      display: none !important;
+    }
+
+    /* Slide 08: 挪德卡莱 · 空月之歌 (纯净通透悬浮，移除外层大卡片，哥伦比娅完全露空) */
+    .slide-nod-krai .layer-narrative {
+      top: 8.5vh !important;
+      left: 4.5vw !important;
+      width: 35vw !important;
+      max-width: 540px !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .slide-nod-krai .slide-main-title {
+      font-size: clamp(1.7rem, 2.3vw, 2.7rem) !important;
+      line-height: 1.1 !important;
+    }
+    .slide-nod-krai .slide-sub-title {
+      color: #e0f2fe !important;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9) !important;
+    }
+    .slide-nod-krai .keypoint-item {
+      border-left-color: #b9d8ff !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .slide-nod-krai .layer-character-wrap {
+      right: -2vw !important;
+      width: 50vw !important;
+    }
+
+    /* Slide 09: 至冬 · 极寒北境 (至冬神明·冰之女皇，纯净冰霜悬浮，零死板方块) */
+    .slide-snezhnaya .layer-narrative {
+      left: 5.5vw !important;
+      width: 35vw !important;
+      max-width: 560px !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    .slide-snezhnaya .slide-main-title {
+      font-size: clamp(1.8rem, 2.7vw, 3rem) !important;
+    }
+    .slide-snezhnaya .keypoint-item {
+      border-left-color: #9ee6ff !important;
+      background: transparent !important;
+      border: none !important;
+      border-left: 3.5px solid #9ee6ff !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 4px 0 4px 16px !important;
+    }
+    .slide-snezhnaya .layer-character-wrap {
+      right: 1vw !important;
+      width: 48vw !important;
+    }
+
+    /* Slide 10: 文化出海 · 神女劈观 */
+    .layout-C .opera-keypoint-card {
+      padding: 8px 16px !important;
+    }
+    .layout-C .opera-keypoint-card .keypoint-en {
+      font-size: 26px !important;
+      font-weight: 800 !important;
+    }
+    .layout-C .opera-keypoint-card .keypoint-cn {
+      font-size: 16.5px !important;
+      font-weight: 600 !important;
+    }
+
+    /* Slide 11: 结语 · 文明之桥 (双生旅行者靠右，荧与卡片完全错开，八大元素徽章右上浮动) */
+    .layout-epilogue .layer-narrative {
+      left: 5vw !important;
+      width: 34vw !important;
+      max-width: 540px !important;
+    }
+    .layout-epilogue .slide-main-title {
+      font-size: clamp(1.8rem, 2.6vw, 2.9rem) !important;
+    }
+    .layout-epilogue .epilogue-dual-travelers {
+      right: 1vw !important;
+      width: 44vw !important;
+      justify-content: flex-end !important;
+    }
+    .layout-epilogue .traveler-lumine {
+      position: absolute !important;
+      right: 17vw !important;
+      bottom: 0 !important;
+      margin-right: 0 !important;
+      z-index: 7 !important;
+      height: 82vh !important;
+    }
+    .layout-epilogue .traveler-aether {
+      position: absolute !important;
+      right: 2vw !important;
+      bottom: 0 !important;
+      z-index: 6 !important;
+      height: 82vh !important;
+    }
+    .seven-elements-halo {
+      position: absolute !important;
+      top: 3.2vh !important;
+      right: 4vw !important;
+      left: auto !important;
+      transform: none !important;
+      z-index: 15 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      background: rgba(8, 12, 22, 0.85) !important;
+      backdrop-filter: blur(14px) !important;
+      padding: 6px 14px !important;
+      border-radius: 24px !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    }
+    .element-chip {
+      padding: 3px 8px !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.5px !important;
+      border-radius: 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+    }
+
+    /* Slide 12: 刻晴专属视频收官页 */
+    .layout-keqing-vlogs .slide-main-title {
+      font-size: clamp(1.8rem, 2.6vw, 2.9rem) !important;
+    }
+
+    /* ==========================================================================
+       各神明一角：七国历史发源与艺术风貌图文卡片 [ 图 | 文 ]
+       根据手写便签 DSCF1100.JPG 规范设计，挂载于各神明舞台角落
+       ========================================================================== */
+    .character-corner-group {
+      position: absolute;
+      bottom: 4vh;
+      right: 3.5vw;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+      pointer-events: auto;
+    }
+
+    .culture-origin-card {
+      display: flex;
+      align-items: stretch;
+      gap: 12px;
+      background: rgba(10, 16, 28, 0.88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(var(--active-rgb, 255, 255, 255), 0.45);
+      border-radius: 10px;
+      padding: 10px 14px;
+      width: 390px;
+      max-width: 420px;
+      box-sizing: border-box;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 20px rgba(var(--active-rgb, 255, 255, 255), 0.18);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .culture-origin-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(var(--active-rgb, 255, 255, 255), 0.75);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.8), 0 0 28px rgba(var(--active-rgb, 255, 255, 255), 0.3);
+    }
+
+    .culture-card-thumb-wrap {
+      position: relative;
+      width: 120px;
+      min-width: 120px;
+      height: 80px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .culture-card-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.35s ease;
+    }
+    .culture-origin-card:hover .culture-card-thumb {
+      transform: scale(1.06);
+    }
+
+    .culture-card-tag {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(5, 8, 16, 0.95) 75%);
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--active-element, #dfb2ff);
+      letter-spacing: 0.5px;
+      padding: 3px 4px 2px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .culture-card-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .culture-card-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .culture-card-label {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: var(--active-element, #dfb2ff);
+      text-transform: uppercase;
+      opacity: 0.95;
+    }
+
+    .culture-card-val-en {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .culture-card-val-cn {
+      font-size: 11px;
+      font-weight: 500;
+      color: #fde68a;
+      line-height: 1.2;
+      opacity: 0.92;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .culture-card-divider {
+      width: 100%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.12);
+      margin: 1px 0;
+    }
+
+    /* 左右反转自适应：蒙德与稻妻神明在左侧 */
+    .slide-mondstadt .character-corner-group,
+    .slide-inazuma .character-corner-group {
+      right: auto !important;
+      left: 3vw !important;
+      align-items: flex-start !important;
+    }
+
+    /* 神明名牌重置定位，使其与文化卡片整齐组合在同一个角 */
+    .archon-placard {
+      position: static !important;
+      width: 390px !important;
+      max-width: 420px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Slide 10: 文化出海 (Layout C) 右下角戏曲文化卡片 */
+    .layout-C .opera-culture-corner {
+      position: absolute;
+      bottom: 4vh;
+      right: 4vw;
+      z-index: 12;
+    }
+
+    /* Slide 11: 结语 (Layout Epilogue) 左下角文明之桥文化卡片 (左下文化卡片，右下创作者名牌) */
+    .layout-epilogue .epilogue-culture-corner {
+      position: absolute;
+      bottom: 5vh;
+      left: 5vw;
+      right: auto !important;
+      z-index: 12;
+    }
+
+    /* ==========================================================================
+       整页排版多样化：现代杂志级悬浮文字与方案②拼贴实景卡片 (无方框束缚)
+       ========================================================================== */
+    .keypoints-list {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 1.8vh !important;
+      margin-top: 0.8vh !important;
+    }
+
+    .keypoint-item {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 0 !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border: none !important;
+      border-left: 3.5px solid var(--active-element) !important;
+      border-radius: 0 !important;
+      padding: 2px 0 2px 16px !important;
+      box-shadow: none !important;
+      transition: transform 0.25s ease, border-color 0.25s ease !important;
+    }
+    .keypoint-item:hover {
+      transform: translateX(8px) !important;
+      border-color: #ffffff !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    .keypoint-num {
+      display: none !important;
+    }
+
+    .keypoint-content {
+      flex: 1 !important;
+    }
+
+    .keypoint-en {
+      font-size: 30px !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+      line-height: 1.25 !important;
+      letter-spacing: 0.01em !important;
+      text-shadow: 0 3px 14px rgba(0, 0, 0, 0.95), 0 0 24px rgba(0, 0, 0, 0.8) !important;
+    }
+
+    .keypoint-cn {
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      color: rgba(253, 230, 138, 0.98) !important;
+      line-height: 1.4 !important;
+      opacity: 0.98 !important;
+      margin-top: 5px !important;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95) !important;
+    }
+
+    /* 方案② 杂志画报实景建筑图卡 [ 图 | 图 ] */
+    .editorial-photo-card {
+      width: 100%;
+      max-width: 540px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(var(--active-rgb), 0.55);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(var(--active-rgb), 0.25);
+      background: rgba(10, 16, 28, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      margin-top: 1.2vh;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .editorial-photo-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(var(--active-rgb), 0.4);
+    }
+
+    .photo-card-media-wrap {
+      position: relative;
+      width: 100%;
+      height: 140px;
+      overflow: hidden;
+    }
+    .photo-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .editorial-photo-card:hover .photo-card-img {
+      transform: scale(1.05);
+    }
+    .photo-card-badge {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      background: rgba(8, 12, 22, 0.88);
+      border: 1px solid var(--active-element);
+      color: var(--active-element);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      backdrop-filter: blur(8px);
+    }
+
+    .photo-card-caption {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(8, 12, 22, 0.92);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .photo-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: 0.5px;
+    }
+    .photo-card-decor {
+      font-size: 8.5px;
+      font-weight: 800;
+      color: var(--active-element);
+      letter-spacing: 1px;
+      opacity: 0.85;
+    }
+
+    /* 恢复神明印牌常规在各神一角的独立典雅展示 */
+    .archon-placard {
+      position: absolute !important;
+      bottom: 5vh !important;
+      right: 3.5vw !important;
+      left: auto !important;
+      width: auto !important;
+      min-width: 220px !important;
+      max-width: 320px !important;
+      background: rgba(10, 14, 23, 0.82) !important;
+      backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(var(--active-rgb), 0.45) !important;
+      border-radius: 10px !important;
+      padding: 12px 20px !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(var(--active-rgb), 0.2) !important;
+      z-index: 10 !important;
+    }
+
+    /* 蒙德与稻妻神明在左侧，名牌随神明移至左侧一角 */
+    .slide-mondstadt .archon-placard,
+    .slide-inazuma .archon-placard {
+      left: 3.5vw !important;
+      right: auto !important;
+    }
+
+    /* 移除多余的旧小卡片样式残留 */
+    .culture-origin-card, .character-corner-group, .opera-culture-corner, .epilogue-culture-corner {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       页面主体：双缓冲视口容器
+       ========================================================================== -->
+  <main id="deck-container">
+    
+    <!-- 视窗 A (当前展示层) -->
+    <div id="viewport-current" class="deck-viewport deck-viewport-current layout-A"></div>
+
+    <!-- 视窗 B (下一页缓冲层) -->
+    <div id="viewport-incoming" class="deck-viewport deck-viewport-incoming layout-A"></div>
+
+    <!-- 瞬黑遮罩 (快捷键 B) -->
+    <div id="blackout-mask"></div>
+
+  </main>
+
+  <!-- ==========================================================================
+       顶部全局控制栏 (常驻署名 + 5分钟计时器)
+       ========================================================================== -->
+  <header class="chrome-topbar">
+    <div class="topbar-left">
+      <div class="topbar-dot"></div>
+      <span class="topbar-title">提瓦特全景课件</span>
+      <span class="topbar-breadcrumb">/</span>
+      <span id="topbar-breadcrumb" class="topbar-breadcrumb" style="color: #f1f5f9; font-weight: 700;">01 · 星海序幕</span>
+    </div>
+
+    <div class="topbar-credits">
+      <span>Presenter: <strong>朱宇晨 (Zhu Yuchen)</strong></span>
+      <span style="opacity: 0.35;">|</span>
+      <span>Producer: <strong>傅梓浩 (Fu Zihao)</strong></span>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       底部全局控制栏 (进度标尺 + 翻页控制)
+       ========================================================================== -->
+  <footer class="chrome-bottombar">
+    <div class="bottombar-shortcuts">
+      <span class="shortcut-key">PageDown</span>
+      <span class="shortcut-key">Space</span>
+      <span class="shortcut-key">ArrowRight</span>
+      <span style="margin-left: 2px;">触控 / 翻页笔就绪</span>
+      <span style="margin: 0 4px; opacity: 0.3;">·</span>
+      <span>按 <span class="shortcut-key">B</span> 瞬黑</span>
+      <span style="margin: 0 4px; opacity: 0.3;">·</span>
+      <span>按 <span class="shortcut-key">F</span> 全屏</span>
+      <span style="margin: 0 4px; opacity: 0.3;">·</span>
+      <span>按 <span class="shortcut-key">M</span> 音乐</span>
+    </div>
+
+    <div class="timeline-ruler" id="timeline-ruler"></div>
+
+    <div class="bottombar-right">
+      <div id="speaker-cue-btn" class="bottombar-cue-pill" title="展开/收起演讲口播提示 (快捷键 T)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+        </svg>
+        <span>提词 (T)</span>
+      </div>
+      <div id="audio-toggle-btn" class="bottombar-audio-pill" title="背景音乐开关 (快捷键 M)">
+        <div class="audio-wave-bars">
+          <span class="audio-wave-bar"></span>
+          <span class="audio-wave-bar"></span>
+          <span class="audio-wave-bar"></span>
+        </div>
+        <span>BGM ♫</span>
+      </div>
+      <div class="slide-counter" id="slide-counter">01 / 12</div>
+      <div style="display: flex; gap: 6px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.18);">
+        <button id="btn-prev" class="nav-control-btn" style="padding: 6px;" title="上一页 (PageUp)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <button id="btn-next" class="nav-control-btn" style="padding: 6px;" title="下一页 (PageDown)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 希沃大屏舒适触控翻页大键 (80×80px) -->
+  <div id="touch-btn-prev" class="seewo-touch-btn seewo-touch-prev" title="触控上一页">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </div>
+  <div id="touch-btn-next" class="seewo-touch-btn seewo-touch-next" title="触控下一页">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  </div>
+
+  <!-- 演讲口播提词半透明抽屉 (由底栏提词按钮或按键 T 呼出) -->
+
+  <div id="speaker-cue-drawer" class="speaker-cue-drawer">
+    <div class="speaker-cue-header">
+      <span class="speaker-cue-title">🎙️ 5-MIN SPEAKER SCRIPT · 演说口播提示</span>
+      <button id="speaker-cue-close" class="speaker-cue-close">✕</button>
+    </div>
+    <p id="speaker-cue-text" class="speaker-cue-body"></p>
+  </div>
+
+  <!-- ==========================================================================
+       九大专属转场图层容器 (由 module_transitions.js 动态注入与调度)
+       ========================================================================== -->
+  <div id="genshin-transitions-layer-container"></div>
+
+
+  <!-- 引入 10 大独立页面全景数据库模块 -->
+  <script src="module_slides_data.js"></script>
+
+  <!-- 引入专属视觉特效转场控制器 -->
+  <script src="module_transitions.js"></script>
+
+  <!-- ==========================================================================
+       脚本架构：数据引擎、双缓冲渲染器与交互控制
+       ========================================================================== -->
+  <script>
+    // 13 大独立页面全景课件数据库 (优先采用 module_slides_data.js 导出的 SLIDES_DATA_13 / SLIDES_DATA_12)
+    const SLIDES_DATA = (typeof SLIDES_DATA_13 !== 'undefined' ? SLIDES_DATA_13 : (typeof window !== 'undefined' && window.SLIDES_DATA_13 ? window.SLIDES_DATA_13 : (typeof SLIDES_DATA_12 !== 'undefined' ? SLIDES_DATA_12 : (typeof window !== 'undefined' && window.SLIDES_DATA_12 ? window.SLIDES_DATA_12 : null)))) || [
+  // --------------------------------------------------------------------------
+  // Slide 01: 提瓦特序幕 (星海与双子) [0:00 - 0:35]
+  // 版式：全图通透悬浮排文 (Full Bleed Celestial Overlay)
+  // --------------------------------------------------------------------------
+  {
+    index: 1,
+    id: "prologue",
+    layout: "A",
+    layoutType: "floating-text",
+    element: "celestia",
+    elementName: "星海天理 · CELESTIA",
+    elementColor: "#dfb2ff",
+    elementRgb: "223, 178, 255",
+    culturePrototype: "世界观: 诺斯替神话与古典双生漫游史诗",
+    watermark: "TEYVAT",
+    mainTitle: "WELCOME TO TEYVAT · SEVEN NATIONS",
+    subTitle: "星海序幕 · 异界旅行者的降临",
+    keypoints: [
+      {
+        en: "A Classical Astral Odyssey: Two brave twins journey across infinite stars.",
+        cn: "古典星海史诗：勇敢的双生旅行者在浩瀚群星之间漫游，降临奇幻大陆。"
+      },
+      {
+        en: "The Unknown God's Separation: A mysterious deity tore our twin away.",
+        cn: "天理神明横空阻截：陌生的神明无情降临，将至亲双子封印分离。"
+      },
+      {
+        en: "An Epic Quest for Family: We embark on a journey across seven nations.",
+        cn: "七国巡礼启程：我们踏上漫长旅途游历诸国，找寻至亲与世界的终极真相。"
+      }
+    ],
+    teleprompter: '"Hello everyone! Look at the shiny stars! Welcome to Teyvat! Two brave twins fly in the sky. But a strange god stops them. The twin is gone! Now, our great journey begins. Let us find our dear twin together!"',
+    placardNation: "TRAVELER",
+    placardTitleCn: "双生旅行者 · 空与荧",
+    placardTitleEn: "Aether & Lumine / The Star Travelers",
+    localCharImg: "genshin_interactive_assets/characters/aether_nobg.png",
+    localCharImgBg: "genshin_interactive_assets/characters/lumine_nobg.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/mondstadt_feidu.png",
+    isCover: true,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 02: 蒙德 (果酒湖风车全景 - 温迪) [0:35 - 0:55]
+  // 版式：方案① [ 文 | 图 ] (特色排版：文字靠右悬浮！温迪靠左！)
+  // --------------------------------------------------------------------------
+  {
+    index: 2,
+    id: "mondstadt",
+    layout: "A",
+    layoutType: "reverse-floating",
+    element: "anemo",
+    elementName: "风元素 · ANEMO",
+    elementColor: "#34e5a7",
+    elementRgb: "52, 229, 167",
+    culturePrototype: "建筑发源: 12–14世纪欧洲莱茵河流域风车小镇",
+    watermark: "MONDSTADT",
+    mainTitle: "MONDSTADT · CITY OF FREEDOM",
+    subTitle: "自由之都 · 蒲公英与游吟牧歌",
+    keypoints: [
+      {
+        en: "Medieval Rhine Valley Towns: Giant windmills and lakeside stone towers.",
+        cn: "中世纪莱茵河风貌：灵感源于欧洲12–14世纪风车城镇与果酒湖风光。"
+      },
+      {
+        en: "Troubadour Pastoral Ballads: Free people celebrate with poetry and song.",
+        cn: "游吟诗人抒情牧歌：人们在蒲公英微风中咏唱自由浪漫的诗篇与歌谣。"
+      },
+      {
+        en: "Venti the Cheerful Bard: Barbatos plays melodies with the gentle breeze.",
+        cn: "风神温迪伴随和煦微风，用古琴奏响属于整座城邦的欢快乐章。"
+      }
+    ],
+    teleprompter: '"Look! This is Mondstadt! It is the city of wind and freedom. Look at the big windmills! It comes from old Europe! People sing happy songs and drink sweet grape juice. Their god is Venti. He plays music with the warm wind!"',
+    placardNation: "BARBATOS",
+    placardTitleCn: "风神巴巴托斯 · 温迪",
+    placardTitleEn: "Venti / Barbatos the Anemo Archon",
+    localCharImg: "genshin_interactive_assets/characters/venti_nobg_vB.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/mondstadt_city.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 03: 璃月 (海灯节千灯与商港全景 - 钟离) [0:55 - 1:15]
+  // 版式：方案② 杂志画报双图拼贴 [ 图 | 文 ] + [ 图 | 图 ] (实景建筑大卡 + 悬浮文字)
+  // --------------------------------------------------------------------------
+  {
+    index: 3,
+    id: "liyue",
+    layout: "A",
+    layoutType: "editorial-collage",
+    element: "geo",
+    elementName: "岩元素 · GEO",
+    elementColor: "#f4c053",
+    elementRgb: "244, 192, 83",
+    culturePrototype: "建筑发源: 古代中国春秋通商口岸与江南徽派马头墙",
+    watermark: "LIYUE",
+    mainTitle: "LIYUE · HARBOR OF CONTRACTS",
+    subTitle: "千帆契约 · 岩峰矗立与江南徽派",
+    keypoints: [
+      {
+        en: "Spring-Autumn Ports & Huizhou Style: Flying pavilions and stone bridges.",
+        cn: "春秋商埠与江南徽派：融入徽派马头墙建筑艺术与奇崛山水峰林。"
+      },
+      {
+        en: "The Sacred Pillar of Contracts: Mutual trust and commerce prosper here.",
+        cn: "千帆商港契约精神：以崇高的契约与诚信为立市之本，四海通达。"
+      },
+      {
+        en: "Morax Guards the Golden Harbor: Zhongli protects peace like solid rock.",
+        cn: "岩王帝君钟离教导世人信守承诺，如磐石般守护千家万户的繁盛。"
+      }
+    ],
+    photoCard: {
+      img: "genshin_interactive_assets/landscapes_real/liyue_feiyun.png",
+      title: "绯云坡牌楼与徽派水乡古肆 · FEIYUN SLOPE",
+      badge: "HUIZHOU ARCHITECTURE · 徽派古建"
+    },
+    teleprompter: '"Next, welcome to Liyue! This is a grand Chinese city. Tall stone mountains and red lanterns! People do business and always keep promises. Their god is Zhongli. He is super strong like a big rock. He keeps all friends safe!"',
+    placardNation: "MORAX",
+    placardTitleCn: "岩王帝君摩拉克斯 · 钟离",
+    placardTitleEn: "Zhongli / Morax the Geo Archon",
+    localCharImg: "genshin_interactive_assets/characters/zhongli_nobg_vB.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/liyue_harbor.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 04: 稻妻 (天守阁俯瞰与紫电樱花 - 雷电将军) [1:15 - 1:35]
+  // 版式：方案① [ 文 | 图 ] (特色排版：文字靠右悬浮！将军靠左！)
+  // --------------------------------------------------------------------------
+  {
+    index: 4,
+    id: "inazuma",
+    layout: "A",
+    layoutType: "reverse-floating",
+    element: "electro",
+    elementName: "雷元素 · ELECTRO",
+    elementColor: "#ca7cff",
+    elementRgb: "202, 124, 255",
+    culturePrototype: "文化发源: 日本江户幕府时代与战国一刀流武士道",
+    watermark: "INAZUMA",
+    mainTitle: "INAZUMA · NATION OF ETERNITY",
+    subTitle: "雷鸣孤岛 · 永恒之心与一刀流武道",
+    keypoints: [
+      {
+        en: "17th–19th Century Edo Samurai Heritage: Shinto torii and castle keeps.",
+        cn: "日本江户幕府时代风貌：汲取天守阁城堡、鸣神大社千本鸟居与武士道。"
+      },
+      {
+        en: "The Decisive Iaijutsu Sword Strike: Musou no Hitotachi slashes mountains.",
+        cn: "稻妻一刀流居合斩：雷电将军以无想一刀万钧雷霆斩断群山，断绝凡尘。"
+      },
+      {
+        en: "Sacred Sakura Beneath Storm Clouds: Pink petals drift across thunder.",
+        cn: "神樱落英与万顷雷云：漫山粉樱与高天紫色雷霆构成极致的凄美永恒。"
+      }
+    ],
+    teleprompter: '"Now, look! Purple lightning! Welcome to Inazuma! It comes from old Japan. Beautiful pink sakura flowers fall everywhere! Raiden Shogun is the queen. She holds a cool sword. Swish! One hit can cut a mountain in two!"',
+    placardNation: "BEELZEBUL",
+    placardTitleCn: "御建鸣神主尊 · 雷电将军",
+    placardTitleEn: "Raiden Shogun / Beelzebul the Electro Archon",
+    localCharImg: "genshin_interactive_assets/characters/raiden_shogun_nobg_vB.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/inazuma_city.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 05: 须弥 (教令院神树与智慧绿茵 - 纳西妲) [1:35 - 1:55]
+  // 版式：方案② 杂志拼图 [ 图 | 文 ] (净善宫实景大卡 + 自然流线悬浮文字)
+  // --------------------------------------------------------------------------
+  {
+    index: 5,
+    id: "sumeru",
+    layout: "D",
+    layoutType: "editorial-collage",
+    element: "dendro",
+    elementName: "草元素 · DENDRO",
+    elementColor: "#9de337",
+    elementRgb: "157, 227, 55",
+    culturePrototype: "文化发源: 中世纪波斯黄金时代、古印度与阿拉伯阿拔斯文明",
+    watermark: "SUMERU",
+    mainTitle: "SUMERU · CRADLE OF WISDOM",
+    subTitle: "智慧绿茵 · 繁茂雨林与波斯学者",
+    keypoints: [
+      {
+        en: "Persian & Indian Golden Age: Inspired by the historic House of Wisdom.",
+        cn: "波斯与古印度文明：汲取阿拔斯智慧之家大图书馆与热带雨林学者学院。"
+      },
+      {
+        en: "Ancient Pyramids Meet Canopy Treehouses: Nature and mystery unite.",
+        cn: "热带雨林树屋与金色沙漠：浩瀚沙漠金字塔与参天智慧神树和谐并存。"
+      },
+      {
+        en: "Little Nahida's Gentle Compassion: Guarding pure dreams for every child.",
+        cn: "草神纳西妲聪慧博爱：用温柔知识守护每一个孩子的纯真美梦与求知探索。"
+      }
+    ],
+    photoCard: {
+      img: "genshin_interactive_assets/landscapes_real/sumeru_palace.png",
+      title: "须弥净善宫与大智慧神树 · SANCTUARY OF SURASTHANA",
+      badge: "HOUSE OF WISDOM · 智慧学者"
+    },
+    teleprompter: '"Next is green Sumeru! Giant trees meet golden sand! It comes from ancient Persia and India. Little Nahida is the baby archon! She is so small, cute, and super smart. She gives sweet dreams to all good children!"',
+    placardNation: "BUER",
+    placardTitleCn: "小吉祥草王 · 纳西妲",
+    placardTitleEn: "Nahida / Buer the Dendro Archon",
+    localCharImg: "genshin_interactive_assets/characters/nahida_splash_vA.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/sumeru_city.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 06: 枫丹 (欧庇克莱歌剧院水城 - 芙宁娜) [1:55 - 2:15]
+  // 版式：半图半文 (左右分割剧场透视 · 法国大歌剧悬浮排文)
+  // --------------------------------------------------------------------------
+  {
+    index: 6,
+    id: "fontaine",
+    layout: "A",
+    layoutType: "floating-text",
+    element: "hydro",
+    elementName: "水元素 · HYDRO",
+    elementColor: "#2ec5ff",
+    elementRgb: "46, 197, 255",
+    culturePrototype: "文化发源: 19世纪法国美好年代、工业蒸汽与巴黎大歌剧院",
+    watermark: "FONTAINE",
+    mainTitle: "FONTAINE · COURT OF JUSTICE",
+    subTitle: "戏剧之都 · 众水之舞与法国大歌剧",
+    keypoints: [
+      {
+        en: "19th Century French Belle Époque: Baroque aqueducts and clockwork tech.",
+        cn: "19世纪法国美好年代：巴黎建筑美学、水上巡轨船与复古蒸汽发条机械。"
+      },
+      {
+        en: "French Grand Opera & Court Drama: Judicial trials as theatrical shows.",
+        cn: "法国大歌剧院与法庭大戏：欧庇克莱歌剧院将每一次严肃审判化作舞台盛宴。"
+      },
+      {
+        en: "Lady Furina's Glamorous Stage: Elegance, justice, and wonderful twists.",
+        cn: "芙宁娜的华丽剧场：以充满戏剧魅力的姿态与连连惊喜展现公正的真谛。"
+      }
+    ],
+    teleprompter: '"Dive into Fontaine! It is the city of water! Just like romantic France! People go to the grand opera house. They watch fun trials like a circus show! Lady Furina loves drama. Neuvillette keeps water clean and fair!"',
+    placardNation: "FOCALORS",
+    placardTitleCn: "众水与戏剧之神 · 芙宁娜",
+    placardTitleEn: "Furina / Focalors the Hydro Archon",
+    localCharImg: "genshin_interactive_assets/characters/furina_splash_vA.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/fontaine_opera.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 07: 纳塔 (圣火竞技场与群龙部族 - 玛薇卡) [2:15 - 2:35]
+  // 版式：全景战火竞技场 · 烈焰战歌悬浮排文 (Full Panorama Floating)
+  // --------------------------------------------------------------------------
+  {
+    index: 7,
+    id: "natlan",
+    layout: "A",
+    layoutType: "floating-text",
+    element: "pyro",
+    elementName: "火元素 · PYRO",
+    elementColor: "#ff5722",
+    elementRgb: "255, 87, 34",
+    culturePrototype: "文化发源: 前哥伦布中美洲玛雅阿兹特克与非洲部族图腾",
+    watermark: "NATLAN",
+    mainTitle: "NATLAN · LAND OF SACRED FLAME",
+    subTitle: "烈焰熔炉 · 群龙部族与圣火竞技",
+    keypoints: [
+      {
+        en: "Pre-Columbian Mesoamerican Spirit: Aztec murals and African tribal beats.",
+        cn: "前哥伦布时期中美洲精魄：汲取古代阿兹特克文明、彩绘峡谷与部族战歌。"
+      },
+      {
+        en: "Sacred Stadium Combat: Warriors fight for glory with saurian allies.",
+        cn: "圣火竞技场勇士搏击：六大部族勇士与飞龙伙伴一同在长燃圣火下驰骋。"
+      },
+      {
+        en: "Mavuika's Fiery Courage: The blazing Pyro Archon rides for her people.",
+        cn: "火神玛薇卡炽热无畏：骑着烈火战车，以炽烈战歌带领全族守望相助。"
+      }
+    ],
+    teleprompter: '"Hot, hot, hot! Welcome to Natlan! This is the land of fire, like ancient Mesoamerica! Cute little dragons fly in the canyon! Warriors fight with big smiles. Archon Mavuika rides a super fast bike! She protects everyone with fire!"',
+    placardNation: "HABRANKA",
+    placardTitleCn: "纳塔火神 · 玛薇卡",
+    placardTitleEn: "Mavuika / Habranka the Pyro Archon",
+    localCharImg: "genshin_interactive_assets/characters/mavuika_splash_vA.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/natlan_stadium.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 08: 挪德卡莱 (空月之歌篇章 · 哥伦比娅) [2:35 - 2:55]
+  // 版式：方案② 杂志画报双图拼贴 [ 图 | 文 ] + [ 图 | 图 ] (极夜冷杉大卡 + 银辉悬浮字)
+  // --------------------------------------------------------------------------
+  {
+    index: 8,
+    id: "nod-krai",
+    layout: "A",
+    layoutType: "editorial-collage",
+    element: "lunar",
+    elementName: "月矩力 · LUNAR TORQUE",
+    elementColor: "#b9d8ff",
+    elementRgb: "185, 216, 255",
+    culturePrototype: "文化发源: 北欧斯堪的纳维亚松林与环波罗的海芬兰神话",
+    watermark: "NOD-KRAI",
+    mainTitle: "NOD-KRAI · SONG OF THE WELKIN MOON",
+    subTitle: "新月秘境 · 挪德卡莱与古老月之歌",
+    keypoints: [
+      {
+        en: "Official Chapter: Song of the Welkin Moon: An expansive independent zone.",
+        cn: "官方年度主篇章「空月之歌」：位于提瓦特大陆北缘的宏大独立探索大区域。"
+      },
+      {
+        en: "Nordic Pine Woods & Baltic Legends: Ancient lunar temple ruins in snow.",
+        cn: "北欧冷杉雪林与芬兰神话：苍茫极夜、冰封月神古殿遗迹与木屋海岸。"
+      },
+      {
+        en: "Moon Goddess Columbina: Uncovering mysterious Lunar Torque energy.",
+        cn: "月之少女哥伦比娅：人们修筑新月神像，觉醒超越七元素的古老月矩力。"
+      }
+    ],
+    photoCard: {
+      img: "genshin_interactive_assets/landscapes_real/snezhnaya_bwiki.png",
+      title: "挪德卡莱雪原松林与三月女神古殿 · WELKIN TEMPLE",
+      badge: "LUNAR TORQUE · 月之文明"
+    },
+    teleprompter: '"Now we enter Nod-Krai! The new magical land in the north! It is like snowy Nordic forests. Cold pine trees and glowing silver moon! Columbina is the moon girl. She sings sweet songs with secret moon magic!"',
+    placardNation: "KUUTAR",
+    placardTitleCn: "月之少女 · 哥伦比娅",
+    placardTitleEn: "Columbina · Kuutar / The Moon Maiden",
+    localCharImg: "genshin_interactive_assets/characters/columbina_splash_vA.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/snezhnaya_nordkrai.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 09: 至冬 (至冬冰雪宫殿全景与极光 - 冰之女皇) [2:55 - 3:15]
+  // 版式：极光冷调对称悬浮排文 (Arctic Aurora Floating)
+  // --------------------------------------------------------------------------
+  {
+    index: 9,
+    id: "snezhnaya",
+    layout: "A",
+    layoutType: "floating-text",
+    element: "cryo",
+    elementName: "冰元素 · CRYO",
+    elementColor: "#9ee6ff",
+    elementRgb: "158, 230, 255",
+    culturePrototype: "建筑发源: 18–19世纪沙皇俄国冬宫与巴洛克洋葱顶城堡",
+    watermark: "SNEZHNAYA",
+    mainTitle: "SNEZHNAYA · REALM OF WINTER",
+    subTitle: "极寒北境 · 冰雪要塞与沙俄冬宫",
+    keypoints: [
+      {
+        en: "18th–19th Century Tsarist Baroque: Towering onion-domed ice fortresses.",
+        cn: "沙皇俄国巴洛克冬宫风貌：宏伟的洋葱圆顶冰雪要塞屹立在漫天北极光之下。"
+      },
+      {
+        en: "The Tsaritsa's Sovereign Will: Her Majesty leads Snezhnaya to challenge high heavens.",
+        cn: "冰之女皇至高意志：至高无上的冰雪女王，心怀向天理秩序宣战的坚毅宿命。"
+      },
+      {
+        en: "Fatui Harbingers Gather in Frost: Reclaiming truth for the final world.",
+        cn: "愚人众十一执行官在至冬宫集结：在冰封严寒深处探寻世界终极法则。"
+      }
+    ],
+    teleprompter: '"Brrr! It is so cold! Welcome to Snezhnaya! The frozen land of snow! It looks like Russian ice palaces. The Tsaritsa is the powerful ice queen. She and the Fatui fighters have a big secret plan for the world!"',
+    placardNation: "SNEZHNAYA",
+    placardTitleCn: "至冬神明 · 冰之女皇",
+    placardTitleEn: "The Tsaritsa / Her Majesty the Cryo Archon",
+    localCharImg: "genshin_interactive_assets/characters/tsaritsa_refined_official.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/snezhnaya_palace_clean.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 10: 提瓦特万国建筑文明巡礼 (派蒙全景向导 · 八国建筑史诗) [3:15 - 3:45]
+  // 版式：方案①/方案② 全景画卷多维网格 [ 图 | 文 | 图 ] (派蒙悬浮呼吸动效 + 八国建筑画卷)
+  // --------------------------------------------------------------------------
+  {
+    index: 10,
+    id: "tevyat-architecture",
+    layout: "architecture",
+    layoutType: "architecture-showcase",
+    element: "omni",
+    elementName: "提瓦特建筑志 · WORLD ARCHITECTURE",
+    elementColor: "#facc15",
+    elementRgb: "250, 204, 21",
+    culturePrototype: "建筑文明溯源: 德国桁架、徽派榫卯、和风枯山水、波斯穹顶、法式巴洛克、美洲金字塔、沙俄雪堡、北欧木殿",
+    watermark: "ARCHITECTURE",
+    mainTitle: "ARCHITECTURAL WONDERS OF TEYVAT",
+    subTitle: "提瓦特万国建筑巡礼 · 文明筑造的凝固史诗",
+    keypoints: [
+      {
+        en: "Global Heritage Reborn: Seven nations echo real-world human architectural wonders.",
+        cn: "真实世界文明重现：七大国度生动复刻人类文明跨越千年的经典建筑遗存。"
+      },
+      {
+        en: "East Meets West in Harmony: Chinese timber mortise-tenon meets European baroque stone.",
+        cn: "东西方建筑美学交融：东方木构飞檐榫卯与西方石砌巴洛克穹顶各放异彩。"
+      },
+      {
+        en: "Living History in Fantasy: Every wall, bridge, and roof tells a unique cultural story.",
+        cn: "幻想世界里的活历史：每一根梁木、每一条水槽都在向世界述说真实的文明史。"
+      }
+    ],
+    paimonBubble: {
+      en: "Paimon says: Look around! Teyvat is full of wonderful homes and towers! People built them with clever real-world wisdom!",
+      cn: "派蒙说：哇！快看提瓦特的每座建筑！全都有着人类现实世界的智慧呢！"
+    },
+    architectureCards: [
+      {
+        nation: "蒙德 · MONDSTADT",
+        titleEn: "German Timber & Windmills",
+        titleCn: "德式半木桁架与风车水力",
+        img: "genshin_interactive_assets/landscapes_real/mondstadt_cathedral.png"
+      },
+      {
+        nation: "璃月 · LIYUE",
+        titleEn: "Hui-style Mortise-Tenon",
+        titleCn: "徽派飞檐与纯木榫卯结构",
+        img: "genshin_interactive_assets/landscapes_real/liyue_wangshu.png"
+      },
+      {
+        nation: "稻妻 · INAZUMA",
+        titleEn: "Tenshukaku Castle & Zen",
+        titleCn: "天守阁平山城与和风枯山水",
+        img: "genshin_interactive_assets/landscapes_real/inazuma_city.png"
+      },
+      {
+        nation: "须弥 · SUMERU",
+        titleEn: "Persian Arabesque Domes",
+        titleCn: "波斯几何穹顶与参天树居",
+        img: "genshin_interactive_assets/landscapes_real/sumeru_palace.png"
+      },
+      {
+        nation: "枫丹 · FONTAINE",
+        titleEn: "Beaux-Arts & Aqueducts",
+        titleCn: "法式折衷主义歌剧院与水道",
+        img: "genshin_interactive_assets/landscapes_real/fontaine_opera.png"
+      },
+      {
+        nation: "纳塔 · NATLAN",
+        titleEn: "Mesoamerican Pyramids",
+        titleCn: "中美洲阶梯金字塔与圣火台",
+        img: "genshin_interactive_assets/landscapes_real/natlan_stadium.png"
+      },
+      {
+        nation: "至冬 · SNEZHNAYA",
+        titleEn: "Tsarist Baroque Onion Domes",
+        titleCn: "沙俄巴洛克洋葱头冰雪城堡",
+        img: "genshin_interactive_assets/landscapes_real/snezhnaya_palace_clean.png"
+      },
+      {
+        nation: "挪德卡莱 · NOD-KRAI",
+        titleEn: "Nordic Stave Churches",
+        titleCn: "北欧冷杉木板神殿与月影立柱",
+        img: "genshin_interactive_assets/landscapes_real/snezhnaya_nordkrai.png"
+      }
+    ],
+    teleprompter: '"Look here! Paimon is guiding our city tour! Did you know every building in Teyvat comes from real history? In Mondstadt, we see tall German windmills catching the fresh wind! In Liyue, wooden houses use clever Chinese mortise and tenon—no nails at all! In Fontaine, huge water bridges look like French palaces! When we play the game, we are traveling across thousands of years of real human architecture! Isn\'t that super cool?"',
+    placardNation: "TEYVAT GUIDE",
+    placardTitleCn: "提瓦特最好向导 · 派蒙",
+    placardTitleEn: "Paimon / The Best Guide in Teyvat",
+    localCharImg: "genshin_interactive_assets/characters/paimon_guide_nobg.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/chenyu_yilong.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 11: 文化出海专题 (《神女劈观》戏楼长卷 - 云堇与申鹤) [3:45 - 4:15]
+  // 版式：方案② 宽银幕三联长卷 [ 图 | 文 | 图 ] (申鹤在左、云堇在右、居中戏曲悬浮)
+  // --------------------------------------------------------------------------
+  {
+    index: 11,
+    id: "divine-damsel",
+    layout: "C",
+    layoutType: "opera-panorama",
+    element: "geo",
+    elementName: "文化出海标杆 · CULTURAL EXPORT",
+    elementColor: "#f59e0b",
+    elementRgb: "245, 158, 11",
+    culturePrototype: "国粹非遗: 正统徽班京剧唱腔与西方现代管弦交响跨界熔铸",
+    watermark: "OPERA",
+    mainTitle: "DIVINE DAMSEL · PEKING OPERA",
+    subTitle: "声动四海 · 《神女劈观》跨界破圈绝唱",
+    keypoints: [
+      {
+        en: "National Intangible Peking Opera: Yun Jin sings the heroic story of Shenhe.",
+        cn: "中国非物质文化遗产：戏曲名角云堇以婉转唱腔演绎申鹤除魔卫民传奇。"
+      },
+      {
+        en: "Peking Opera Arias with Symphony: Traditional gongs meet grand orchestra.",
+        cn: "京剧念白与西洋交响熔铸：传统戏曲声腔打击乐与现代管弦交响跨界融合。"
+      },
+      {
+        en: "A Global Cultural Phenomenon: Millions worldwide embraced Chinese opera.",
+        cn: "全球破圈文化现象：让数以千万计的海外年轻玩家领略东方古典戏曲之美。"
+      }
+    ],
+    teleprompter: '"Listen! This is real Chinese Peking Opera! Girl singer Yun Jin sings on stage. She tells how brave Shenhe saved people. Kids around the world watched this video. They said: Wow! Chinese opera is so amazing and cool!"',
+    placardNation: "OPERA DIVA",
+    placardTitleCn: "和裕茶馆名角 · 云堇",
+    placardTitleEn: "Yun Jin Peking Opera Singer",
+    localCharImg: "genshin_interactive_assets/characters/yunjin_nobg_vB.png",
+    charImgLeft: "genshin_interactive_assets/characters/shenhe_nobg_vB.png",
+    charImgRight: "genshin_interactive_assets/characters/yunjin_nobg_vB.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/chenyu_qiaoying.png",
+    isCover: false,
+    isEnding: false
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 12: 结语 (文明之桥 · 携手同行) [4:15 - 4:40]
+  // 版式：全景画卷双生悬浮致谢 (Epilogue Panoramic Harmony)
+  // --------------------------------------------------------------------------
+  {
+    index: 12,
+    id: "epilogue",
+    layout: "epilogue",
+    layoutType: "epilogue-harmony",
+    element: "celestia",
+    elementName: "总结致谢 · EPILOGUE",
+    elementColor: "#dfb2ff",
+    elementRgb: "223, 178, 255",
+    culturePrototype: "第九艺术数字化载体与多元文明跨界互鉴",
+    watermark: "HARMONY",
+    mainTitle: "A BRIDGE OF CULTURES · TEYVAT HARMONY",
+    subTitle: "文明之桥 · 携手同行的跨文化史诗长卷",
+    keypoints: [
+      {
+        en: "Digital Bridge of Civilizations: Video games unite global stories and hearts.",
+        cn: "多元文明的数字之桥：让东方美学与世界古典文化在虚拟空间中交响互鉴。"
+      },
+      {
+        en: "Every Culture Shines with Beauty: From Rhine windmills to Chinese mountains.",
+        cn: "每一种文明都璀璨生辉：从莱茵风车、华夏山水到北欧极夜，美美与共。"
+      },
+      {
+        en: "Thank You for Traveling Across Teyvat: May your stars guide your bright journey!",
+        cn: "衷心感谢老师与各位同学一路相伴！愿大家的旅程永远充满星辰与梦想！"
+      }
+    ],
+    teleprompter: '"See? Games are like a big rainbow bridge! Kids from China, Europe, America, and Japan play together. We share fun stories and become good friends. Thank you all for listening! You are the best!"',
+    placardNation: "TRAVELERS",
+    placardTitleCn: "双生旅行者 · 荧与空",
+    placardTitleEn: "Lumine & Aether / Star Travelers",
+    localCharImg: "genshin_interactive_assets/characters/lumine_nobg.png",
+    localCharImgBg: "genshin_interactive_assets/characters/aether_nobg.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/liyue_wangshu.png",
+    isCover: false,
+    isEnding: true
+  },
+
+  // --------------------------------------------------------------------------
+  // Slide 13: 演讲收官与课外探索 (刻晴展台 · 德国研学视频矩阵) [4:40 - 5:00]
+  // 版式：Layout Keqing Vlogs (左侧视频卡片 + 真实二维码 + 刻晴专属展台)
+  // --------------------------------------------------------------------------
+  {
+    index: 13,
+    id: "keqing-vlogs",
+    layout: "keqing-vlogs",
+    layoutType: "keqing-vlogs",
+    element: "electro",
+    elementName: "收官分享 · REAL ENGLISH",
+    elementColor: "#c084fc",
+    elementRgb: "192, 132, 252",
+    culturePrototype: "跨文化交流: 春晖学子德国研学生活与真实英语对话",
+    watermark: "GERMANY",
+    mainTitle: "ENGLISH VLOGS IN GERMANY · REAL DIALOGUE",
+    subTitle: "实境交流 · 德国游学纪实与口语分享",
+    callToActionEn: "Want to hear more spoken English in real life? Scan below to watch!",
+    callToActionCn: "还想听朱宇晨讲英文？请看视频",
+    keypoints: [
+      {
+        en: "Explore real German classroom lessons and student exchanges.",
+        cn: "走入真实的德国高中课堂，记录沉浸式跨文化教学与交流。"
+      },
+      {
+        en: "Experience warm local host families and wonderful friendships.",
+        cn: "体会热情淳朴的当地寄宿家庭生活，收获真挚深厚的跨国友谊。"
+      },
+      {
+        en: "Scan the QR codes below to watch our live English travel vlogs.",
+        cn: "扫描下方二维码即可直接在手机端观看朱宇晨的真实英语口语视频。"
+      }
+    ],
+    vlogs: [
+      {
+        title: "春晖中学交流生在德国的第二天-德式课堂与文化体验-0722",
+        url: "https://www.bilibili.com/video/BV1dR3F6RExu/",
+        qr: "genshin_interactive_assets/qrcodes/vlog1_qr.png",
+        cover: "genshin_interactive_assets/vlogs/vlog1_cover.jpg",
+        desc: "Day 2 in Germany: German Classroom & Cultural Workshop"
+      },
+      {
+        title: "春晖中学交流生在德国的第一天-新家庭新环境-0721！",
+        url: "https://www.bilibili.com/video/BV1A3g16fEv2/",
+        qr: "genshin_interactive_assets/qrcodes/vlog2_qr.png",
+        cover: "genshin_interactive_assets/vlogs/vlog2_cover.jpg",
+        desc: "Day 1 in Germany: Meeting the Host Family & New Environment"
+      },
+      {
+        title: "春晖中学的德国交换生",
+        url: "https://www.bilibili.com/video/BV1aM7k6UEG7/",
+        qr: "genshin_interactive_assets/qrcodes/vlog3_qr.png",
+        cover: "genshin_interactive_assets/vlogs/vlog3_cover.jpg",
+        desc: "Documentary: Cross-Cultural Exchange at Chunhui High School"
+      }
+    ],
+    closingEn: "Thank you for traveling across Teyvat with me! May your journey be filled with stars and abysses.",
+    closingSlogan: "Ad astra abyssosque! 向着星辰与深渊！",
+    teleprompter: '"Want to hear me speak more English in real life? Look at my travel videos in Germany! Cute German classrooms and happy host families! Scan the QR codes on the screen! Let us watch together! Thank you and goodbye!"',
+    placardNation: "YU HENG",
+    placardTitleCn: "玉衡星 · 刻晴",
+    placardTitleEn: "Keqing / Yuheng of the Liyue Qixing",
+    localCharImg: "genshin_interactive_assets/characters/liyue/keqing_nobg_cutout.png",
+    localSceneryBg: "genshin_interactive_assets/landscapes_real/chenyu_yilong.png",
+    isCover: false,
+    isEnding: true
+  }
+];
+
+    // ==========================================================================
+    // 沉浸式提瓦特音频引擎 (轻柔小声 BGM + 翻页与五星转场音效 + 自动解锁)
+    // ==========================================================================
+    class GenshinAudioManager {
+      constructor() {
+        this.bgmVolume = 0.16; // 小声舒适的提瓦特背景音乐，不抢人声
+        this.sfxVolume = 0.22; // 清脆提瓦特 UI 翻页音效
+        this.isMuted = false;
+        this.hasInteracted = false;
+        this.fadeTimer = null;
+
+        // BGM 元素初始化
+        this.bgm = new Audio();
+        this.bgm.loop = true;
+        this.bgm.volume = 0; // 初始为 0，随后平滑淡入
+        this.bgm.preload = 'auto';
+
+        // 优先使用 mp3，ogg 作为全平台兼容备选
+        const canPlayMp3 = this.bgm.canPlayType('audio/mpeg') !== '';
+        this.bgmSrc = canPlayMp3 
+          ? 'genshin_interactive_assets/audio/bgm/welkin_moon_progeny.mp3' 
+          : 'genshin_interactive_assets/audio/bgm/welkin_moon_progeny.ogg';
+        this.sfxSrc = canPlayMp3 
+          ? 'genshin_interactive_assets/audio/sfx/ui_result_list.mp3' 
+          : 'genshin_interactive_assets/audio/sfx/ui_result_list.ogg';
+        this.starSrc = canPlayMp3 
+          ? 'genshin_interactive_assets/audio/sfx/ui_gacha_reveal_5star.mp3' 
+          : 'genshin_interactive_assets/audio/sfx/ui_gacha_reveal_5star.ogg';
+
+        this.bgm.src = this.bgmSrc;
+
+        this.btnPill = document.getElementById('audio-toggle-btn');
+        this.setupAutoplayUnlock();
+        this.updatePillUI(false);
+      }
+
+      setupAutoplayUnlock() {
+        // 尝试首次直接以极小音量播放 (针对部分一体机白名单环境)
+        const playPromise = this.bgm.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            this.fadeInBgm();
+            this.updatePillUI(true);
+            this.hasInteracted = true;
+          }).catch(() => {
+            // 现代浏览器 Autoplay Policy 拦截，等待首次全局手势交互
+            const unlockAudio = () => {
+              if (this.hasInteracted) return;
+              this.hasInteracted = true;
+              this.playBgm();
+              window.removeEventListener('pointerdown', unlockAudio);
+              window.removeEventListener('touchstart', unlockAudio);
+              window.removeEventListener('click', unlockAudio);
+              window.removeEventListener('keydown', unlockAudio);
+            };
+            window.addEventListener('pointerdown', unlockAudio, { once: true });
+            window.addEventListener('touchstart', unlockAudio, { once: true });
+            window.addEventListener('click', unlockAudio, { once: true });
+            window.addEventListener('keydown', unlockAudio, { once: true });
+          });
+        }
+      }
+
+      fadeInBgm(duration = 1200) {
+        if (this.isMuted) return;
+        if (this.fadeTimer) clearInterval(this.fadeTimer);
+        const start = this.bgm.volume;
+        const target = this.bgmVolume;
+        const startTime = Date.now();
+        this.fadeTimer = setInterval(() => {
+          const progress = Math.min((Date.now() - startTime) / duration, 1);
+          this.bgm.volume = start + (target - start) * progress;
+          if (progress >= 1) {
+            clearInterval(this.fadeTimer);
+            this.fadeTimer = null;
+          }
+        }, 50);
+      }
+
+      fadeOutBgm(duration = 500, callback) {
+        if (this.fadeTimer) clearInterval(this.fadeTimer);
+        const start = this.bgm.volume;
+        const startTime = Date.now();
+        this.fadeTimer = setInterval(() => {
+          const progress = Math.min((Date.now() - startTime) / duration, 1);
+          this.bgm.volume = Math.max(0, start * (1 - progress));
+          if (progress >= 1) {
+            clearInterval(this.fadeTimer);
+            this.fadeTimer = null;
+            if (callback) callback();
+          }
+        }, 50);
+      }
+
+      playBgm() {
+        if (this.isMuted) return;
+        this.bgm.play().then(() => {
+          this.fadeInBgm();
+          this.updatePillUI(true);
+        }).catch((err) => {
+          console.warn('Audio play notice:', err);
+        });
+      }
+
+      pauseBgm() {
+        this.fadeOutBgm(400, () => {
+          this.bgm.pause();
+          this.updatePillUI(false);
+        });
+      }
+
+      toggleBgm() {
+        this.playClickSfx();
+        if (this.isMuted || this.bgm.paused) {
+          this.isMuted = false;
+          this.playBgm();
+        } else {
+          this.isMuted = true;
+          this.pauseBgm();
+        }
+      }
+
+      playSlideSfx(targetIdx) {
+        if (this.isMuted) return;
+        try {
+          // Slide 10: 文化出海 · 神女劈观 触发专属五星金光音效
+          if (targetIdx === 9) {
+            const star = new Audio(this.starSrc);
+            star.volume = 0.28;
+            star.play().catch(() => {});
+            return;
+          }
+          // 普通切页清脆音效
+          const sfx = new Audio(this.sfxSrc);
+          sfx.volume = this.sfxVolume;
+          sfx.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      playClickSfx() {
+        if (this.isMuted) return;
+        try {
+          const sfx = new Audio(this.sfxSrc);
+          sfx.volume = 0.14;
+          sfx.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      updatePillUI(isPlaying) {
+        if (!this.btnPill) return;
+        if (isPlaying && !this.isMuted) {
+          this.btnPill.classList.add('playing');
+          this.btnPill.innerHTML = `
+            <div class="audio-wave-bars">
+              <span class="audio-wave-bar"></span>
+              <span class="audio-wave-bar"></span>
+              <span class="audio-wave-bar"></span>
+            </div>
+            <span>BGM ♫</span>
+          `;
+          this.btnPill.title = "点击静音背景音乐 (快捷键 M)";
+        } else {
+          this.btnPill.classList.remove('playing');
+          this.btnPill.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <line x1="23" y1="9" x2="17" y2="15"/>
+              <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+            <span>静音 ✕</span>
+          `;
+          this.btnPill.title = "点击播放背景音乐 (快捷键 M)";
+        }
+      }
+    }
+
+    // ==========================================================================
+    // 课件演示主架构引擎 (双缓冲 + Stagger 时序 + 12大区域/页面路由)
+    // ==========================================================================
+    class PresentationEngine {
+      constructor(slides) {
+        this.slides = slides;
+        this.currentIndex = 0;
+        this.isLocked = false;
+
+        // 初始化原神沉浸式音频管理器 (小声BGM + 翻页与五星转场音效)
+        window.genshinAudio = new GenshinAudioManager();
+
+        // 双缓冲视口 DOM 容器引用
+        this.container = document.getElementById('deck-container');
+        this.viewportCurrent = document.getElementById('viewport-current');
+        this.viewportIncoming = document.getElementById('viewport-incoming');
+
+        // 控制条 DOM
+        this.topbarBreadcrumb = document.getElementById('topbar-breadcrumb');
+        this.slideCounter = document.getElementById('slide-counter');
+        this.timelineRuler = document.getElementById('timeline-ruler');
+        this.blackoutMask = document.getElementById('blackout-mask');
+
+        // 十一组转场图层引用
+        this.transLayers = {
+          'trans_01_02_wind': document.getElementById('trans-wind'),
+          'trans_02_03_rock': document.getElementById('trans-rock'),
+          'trans_03_04_slash': document.getElementById('trans-slash'),
+          'trans_04_05_dendro': document.getElementById('trans-dendro'),
+          'trans_05_06_hydro': document.getElementById('trans-hydro'),
+          'trans_06_07_pyro': document.getElementById('trans-pyro'),
+          'trans_07_08_lunar': document.getElementById('trans-lunar'),
+          'trans_08_09_cryo': document.getElementById('trans-cryo'),
+          'trans_09_10_opera': document.getElementById('trans-opera'),
+          'trans_10_11_celestia': document.getElementById('trans-celestia'),
+          'trans_11_12_electro': document.getElementById('trans-vlogs')
+        };
+
+        // 演讲者口播提词抽屉系统 (Speaker Cue)
+        this.speakerCueBtn = document.getElementById('speaker-cue-btn');
+        this.speakerCueDrawer = document.getElementById('speaker-cue-drawer');
+        this.speakerCueClose = document.getElementById('speaker-cue-close');
+        this.speakerCueText = document.getElementById('speaker-cue-text');
+
+        this.init();
+      }
+
+      get isLocked() {
+        return this.transitionEngine ? this.transitionEngine.isBusy() : this._isLocked;
+      }
+
+      set isLocked(val) {
+        if (this.transitionEngine) this.transitionEngine.isLocked = val;
+        else this._isLocked = val;
+      }
+
+      init() {
+        this.renderTimeline();
+        // 初始渲染第 1 页到当前视窗
+        this.renderSlide(this.viewportCurrent, this.slides[0]);
+        this.viewportCurrent.className = `deck-viewport deck-viewport-current layout-${this.slides[0].layout} slide-${this.slides[0].id}`;
+        this.updateChrome();
+        this.bindEvents();
+
+        // 挂载原神专属视觉特效转场引擎 (Double-Buffered Transition Engine)
+        if (typeof GenshinTransitionEngine !== 'undefined') {
+          this.transitionEngine = new GenshinTransitionEngine({
+            container: this.container,
+            viewportCurrent: this.viewportCurrent,
+            viewportIncoming: this.viewportIncoming,
+            slides: this.slides,
+            renderSlide: (viewport, slide, idx) => {
+              this.renderSlide(viewport, slide);
+            },
+            onTransitionStart: (curIdx, nxtIdx, transKey) => {
+              if (this.blackoutMask && this.blackoutMask.classList.contains('active')) {
+                this.blackoutMask.classList.remove('active');
+              }
+              if (window.genshinAudio) {
+                window.genshinAudio.playSlideSfx(nxtIdx);
+              }
+            },
+            onSlideChange: (nxtIdx, nxtSlide) => {
+              this.currentIndex = nxtIdx;
+              this.viewportCurrent = this.transitionEngine.viewportCurrent;
+              this.viewportIncoming = this.transitionEngine.viewportIncoming;
+              this.updateChrome();
+            }
+          });
+          this.transLayers = this.transitionEngine.transLayers;
+        }
+      }
+
+      toggleSpeakerCue() {
+        if (this.speakerCueDrawer) {
+          this.speakerCueDrawer.classList.toggle('active');
+        }
+      }
+
+      closeSpeakerCue() {
+        if (this.speakerCueDrawer) {
+          this.speakerCueDrawer.classList.remove('active');
+        }
+      }
+
+      // 生成幻灯片专属 DOM 结构 (按 Layout A / B / C / D / Epilogue / keqing-vlogs 动态生成)
+      // 生成幻灯片专属 DOM 结构 (按 Layout A / B / C / D / Epilogue / keqing-vlogs 动态生成)
+      // 生成幻灯片专属 DOM 结构 (按整页排版方案①/方案②/半图半文/全图悬浮排文动态生成)
+      renderSlide(container, data) {
+        container.innerHTML = '';
+
+        const ELEMENT_ICONS = {
+          anemo: 'genshin_interactive_assets/ui/elements/element_anemo.svg',
+          geo: 'genshin_interactive_assets/ui/elements/element_geo.svg',
+          electro: 'genshin_interactive_assets/ui/elements/element_electro.svg',
+          dendro: 'genshin_interactive_assets/ui/elements/element_dendro.svg',
+          hydro: 'genshin_interactive_assets/ui/elements/element_hydro.svg',
+          pyro: 'genshin_interactive_assets/ui/elements/element_pyro.svg',
+          cryo: 'genshin_interactive_assets/ui/elements/element_cryo.svg'
+        };
+
+        const getElementBadgeIcon = (elem) => {
+          if (ELEMENT_ICONS[elem]) {
+            return `<img class="element-badge-svg" src="${ELEMENT_ICONS[elem]}" alt="${elem}" />`;
+          }
+          if (elem === 'lunar') {
+            return `<svg class="element-badge-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.79c-.44-.06-.9-.11-1.36-.11z"/></svg>`;
+          }
+          return `<svg class="element-badge-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15 8L21 9L17 14L18 20L12 17L6 20L7 14L3 9L9 8Z"/></svg>`;
+        };
+
+        // Layer 1: 纯风景全景图 (通透明亮实景)
+        const scenery = document.createElement('div');
+        scenery.className = 'layer-scenery';
+        scenery.style.backgroundImage = `url('${data.localSceneryBg}')`;
+        container.appendChild(scenery);
+
+        // Layer 2: 英文超大水印
+        const watermark = document.createElement('div');
+        watermark.className = 'layer-watermark';
+        watermark.innerHTML = `<div class="watermark-text">${data.watermark}</div>`;
+        container.appendChild(watermark);
+
+        // Layout B 专属极昼极夜分屏容器 (专用于纳塔与至冬，熔岩与极寒冰原对撞)
+        if (data.layout === 'B') {
+          const splitWrap = document.createElement('div');
+          splitWrap.className = `polar-split-container split-theme-${data.id}`;
+          splitWrap.innerHTML = `
+            <div class="split-half-left" style="background-image: url('${data.localSceneryBg}');">
+              <div class="split-overlay-left"></div>
+            </div>
+            <div class="split-divider-seam"></div>
+            <div class="split-half-right" style="background-image: url('${data.localSceneryBgRight || data.localSceneryBg}');">
+              <div class="split-overlay-right"></div>
+            </div>
+          `;
+          container.appendChild(splitWrap);
+        }
+
+        // Layout C 专属顶部戏曲 Banner 与双人立绘
+        if (data.layout === 'C') {
+          const operaBanner = document.createElement('div');
+          operaBanner.className = 'opera-stage-banner';
+          operaBanner.innerHTML = `
+            <div class="badge-group" style="justify-content: center; margin-bottom: 8px;">
+              <span class="badge-pill badge-element" style="color: #f59e0b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.2);">
+                ${getElementBadgeIcon(data.element)} <span>${data.elementName}</span>
+              </span>
+              <span class="badge-pill badge-culture">${data.culturePrototype}</span>
+            </div>
+            <h1 class="slide-main-title" style="font-size: clamp(2.4rem, 3.8vw, 4.2rem); color: #fef08a; text-shadow: 0 0 30px rgba(245, 158, 11, 0.6);">${data.mainTitle}</h1>
+            <div class="slide-sub-title" style="justify-content: center; color: #fde68a;">${data.subTitle}</div>
+          `;
+          container.appendChild(operaBanner);
+
+          // 申鹤左立绘
+          const charLeft = document.createElement('div');
+          charLeft.className = 'opera-character-left';
+          charLeft.innerHTML = `<img class="opera-character-img" src="${data.charImgLeft}" alt="申鹤" />`;
+          container.appendChild(charLeft);
+
+          // 云堇右立绘
+          const charRight = document.createElement('div');
+          charRight.className = 'opera-character-right';
+          charRight.innerHTML = `<img class="opera-character-img" src="${data.charImgRight}" alt="云堇" />`;
+          container.appendChild(charRight);
+
+          // 戏曲核心要点横向三列微排版
+          const keypointsRow = document.createElement('div');
+          keypointsRow.className = 'opera-keypoints-row';
+          keypointsRow.innerHTML = data.keypoints.map((kp, idx) => `
+            <div class="opera-keypoint-card">
+              <div class="keypoint-en" style="margin-top: 6px;">${kp.en}</div>
+              <div class="keypoint-cn">${kp.cn}</div>
+            </div>
+          `).join('');
+          container.appendChild(keypointsRow);
+        }
+
+        // Layout D 须弥生命藤蔓流线
+        if (data.layout === 'D') {
+          const lifeline = document.createElement('div');
+          lifeline.className = 'dendro-lifeline';
+          container.appendChild(lifeline);
+        }
+
+        // Slide 11: 殿堂级尾页画卷排版
+        if (data.layout === 'epilogue') {
+          const dualTravelers = document.createElement('div');
+          dualTravelers.className = 'epilogue-dual-travelers';
+          dualTravelers.innerHTML = `
+            <img class="traveler-img traveler-lumine" src="genshin_interactive_assets/characters/lumine_nobg.png" alt="荧" />
+            <img class="traveler-img traveler-aether" src="genshin_interactive_assets/characters/aether_nobg.png" alt="空" />
+          `;
+          container.appendChild(dualTravelers);
+
+          // 八大区域元素星印光环
+          const halo = document.createElement('div');
+          halo.className = 'seven-elements-halo';
+          halo.innerHTML = `
+            <div class="element-chip" style="color: #34e5a7; border: 1px solid rgba(52,229,167,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_anemo.svg" alt="anemo"/> 风 ANEMO</div>
+            <div class="element-chip" style="color: #f4c053; border: 1px solid rgba(244,192,83,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_geo.svg" alt="geo"/> 岩 GEO</div>
+            <div class="element-chip" style="color: #ca7cff; border: 1px solid rgba(202,124,255,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_electro.svg" alt="electro"/> 雷 ELECTRO</div>
+            <div class="element-chip" style="color: #9de337; border: 1px solid rgba(157,227,55,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_dendro.svg" alt="dendro"/> 草 DENDRO</div>
+            <div class="element-chip" style="color: #2ec5ff; border: 1px solid rgba(46,197,255,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_hydro.svg" alt="hydro"/> 水 HYDRO</div>
+            <div class="element-chip" style="color: #ff5722; border: 1px solid rgba(255,87,34,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_pyro.svg" alt="pyro"/> 火 PYRO</div>
+            <div class="element-chip" style="color: #b9d8ff; border: 1px solid rgba(185,216,255,0.5);"><svg class="element-badge-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.79c-.44-.06-.9-.11-1.36-.11z"/></svg> 月 LUNAR</div>
+            <div class="element-chip" style="color: #9ee6ff; border: 1px solid rgba(158,230,255,0.5);"><img class="element-badge-svg" src="genshin_interactive_assets/ui/elements/element_cryo.svg" alt="cryo"/> 冰 CRYO</div>
+          `;
+          container.appendChild(halo);
+
+          // 创作者殿堂金色名牌画卷式排版 (右下角)
+          const creatorPlaque = document.createElement('div');
+          creatorPlaque.className = 'epilogue-creator-plaque epilogue-gold-scroll-plaque';
+          creatorPlaque.innerHTML = `
+            <div class="creator-column">
+              <span class="creator-role">PRESENTER · 演讲人</span>
+              <span class="creator-name">朱宇晨 (Zhu Yuchen)</span>
+            </div>
+            <div class="creator-divider-line"></div>
+            <div class="creator-column">
+              <span class="creator-role">PRODUCER · 制作人</span>
+              <span class="creator-name">傅梓浩 (Fu Zihao)</span>
+            </div>
+          `;
+          container.appendChild(creatorPlaque);
+        }
+
+        // Slide 12: 收官页刻晴专属 + 德国交流视频矩阵
+        if (data.layout === 'keqing-vlogs') {
+          // 刻晴专属立绘舞台
+          const charWrap = document.createElement('div');
+          charWrap.className = 'layer-character-wrap';
+          charWrap.innerHTML = `
+            <div class="character-stage">
+              <img class="character-visual keqing-visual" src="${data.localCharImg}" alt="${data.placardTitleCn}" />
+            </div>
+            <div class="archon-placard">
+              <div class="placard-nation">${data.placardNation}</div>
+              <div class="placard-title-cn">${data.placardTitleCn}</div>
+              <div class="placard-title-en">${data.placardTitleEn}</div>
+            </div>
+          `;
+          const img2d = charWrap.querySelector('.character-visual');
+          this.bindParallaxTilt(charWrap, img2d);
+          container.appendChild(charWrap);
+
+          // 左侧叙事与 3 个视频卡片及致谢
+          const narrative = document.createElement('section');
+          narrative.className = 'layer-narrative layout-keqing-narrative';
+          narrative.innerHTML = `
+            <div class="badge-group">
+              <span class="badge-pill badge-element" style="color: #c084fc; border-color: #c084fc; background: rgba(192, 132, 252, 0.2);">
+                ${getElementBadgeIcon(data.element)} <span>${data.elementName}</span>
+              </span>
+              <span class="badge-pill badge-culture">${data.culturePrototype}</span>
+            </div>
+
+            <div class="title-group">
+              <h1 class="slide-main-title">${data.mainTitle}</h1>
+              <div class="slide-sub-title">${data.subTitle}</div>
+            </div>
+
+            <div class="vlog-cta-card">
+              <div class="vlog-cta-en">${data.callToActionEn}</div>
+              <div class="vlog-cta-cn">${data.callToActionCn}</div>
+            </div>
+
+            <div class="vlog-cards-grid">
+              ${(data.vlogs || []).map((v, i) => `
+                <div class="vlog-card" id="vlog-card-${i + 1}">
+                  <div class="vlog-cover-wrap">
+                    <img class="vlog-cover-img" src="${v.cover}" alt="${v.title}" />
+                    <div class="vlog-play-badge">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+                        <polygon points="6 4 20 12 6 20 6 4"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <a class="vlog-title-link" href="${v.url}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">
+                    ${v.title}
+                  </a>
+                  <div class="vlog-qr-box">
+                    <img class="vlog-qr-img" src="${v.qr}" alt="QR code ${i + 1}" />
+                  </div>
+                  <span class="vlog-scan-hint">扫码直接观看 · SCAN TO WATCH</span>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="vlog-farewell-box">
+              <div class="vlog-farewell-en">"${data.closingEn}"</div>
+              <div class="vlog-farewell-slogan">${data.closingSlogan}</div>
+            </div>
+          `;
+          container.appendChild(narrative);
+          return;
+        }
+
+        // Slide 10: 提瓦特万国建筑文明巡礼 (派蒙全景向导 · 八国建筑画卷展台)
+        if (data.layout === 'architecture') {
+          // 派蒙专属展台 (带有呼吸起伏、向导气泡和名牌)
+          const charWrap = document.createElement('div');
+          charWrap.className = 'layer-character-wrap paimon-guide-wrap';
+          charWrap.innerHTML = `
+            <div class="paimon-speech-bubble">
+              <div class="bubble-sparkle">✦ PAIMON GUIDE · 提瓦特最好向导</div>
+              <div class="bubble-text-en">${data.paimonBubble ? data.paimonBubble.en : ''}</div>
+              <div class="bubble-text-cn">${data.paimonBubble ? data.paimonBubble.cn : ''}</div>
+            </div>
+            <div class="character-stage paimon-stage">
+              <img class="character-visual paimon-visual" src="${data.localCharImg}" alt="${data.placardTitleCn}" />
+              <div class="paimon-floating-halo"></div>
+            </div>
+            <div class="archon-placard paimon-placard">
+              <div class="placard-nation">${data.placardNation}</div>
+              <div class="placard-title-cn">${data.placardTitleCn}</div>
+              <div class="placard-title-en">${data.placardTitleEn}</div>
+            </div>
+          `;
+          const img2d = charWrap.querySelector('.character-visual');
+          this.bindParallaxTilt(charWrap, img2d);
+          container.appendChild(charWrap);
+
+          // 核心叙事与八国建筑画卷
+          const narrative = document.createElement('section');
+          narrative.className = 'layer-narrative layout-architecture-narrative';
+          narrative.innerHTML = `
+            <div class="badge-group">
+              <span class="badge-pill badge-element" style="color: #facc15; border-color: #facc15; background: rgba(250, 204, 21, 0.2);">
+                ${getElementBadgeIcon(data.element)} <span>${data.elementName}</span>
+              </span>
+              <span class="badge-pill badge-culture">${data.culturePrototype}</span>
+            </div>
+
+            <div class="title-group">
+              <h1 class="slide-main-title">${data.mainTitle}</h1>
+              <div class="slide-sub-title">${data.subTitle}</div>
+            </div>
+
+            <div class="gold-divider"></div>
+
+            <div class="keypoints-list">
+              ${(data.keypoints || []).map((kp, idx) => `
+                <div class="keypoint-item">
+                  <div class="keypoint-content">
+                    <div class="keypoint-en">${kp.en}</div>
+                    <div class="keypoint-cn">${kp.cn}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="architecture-cards-scroll">
+              ${(data.architectureCards || []).map((card, i) => `
+                <div class="arch-card" id="arch-card-${i + 1}">
+                  <div class="arch-card-thumb-wrap">
+                    <img class="arch-card-thumb" src="${card.img}" alt="${card.titleCn}" />
+                    <span class="arch-card-nation">${card.nation.split('·')[0].trim()}</span>
+                  </div>
+                  <div class="arch-card-info">
+                    <div class="arch-card-title-en">${card.titleEn}</div>
+                    <div class="arch-card-title-cn">${card.titleCn}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+          container.appendChild(narrative);
+          return;
+        }
+
+        // Slide 01 专属双生旅行者纵深站位 (空在前、荧在后，完全避让文字)
+        if (data.id === 'prologue') {
+          const charWrap = document.createElement('div');
+          charWrap.className = 'layer-character-wrap';
+          charWrap.innerHTML = `
+            <div class="character-stage prologue-dual-travelers">
+              <img class="traveler-lumine-bg" src="${data.localCharImgBg || 'genshin_interactive_assets/characters/lumine_nobg.png'}" alt="荧" />
+              <img class="character-visual traveler-aether-fg" src="${data.localCharImg}" alt="${data.placardTitleCn}" />
+            </div>
+            <div class="archon-placard">
+              <div class="placard-nation">${data.placardNation}</div>
+              <div class="placard-title-cn">${data.placardTitleCn}</div>
+              <div class="placard-title-en">${data.placardTitleEn}</div>
+            </div>
+          `;
+          const img2d = charWrap.querySelector('.character-visual');
+          this.bindParallaxTilt(charWrap, img2d);
+          container.appendChild(charWrap);
+        } else if (data.layout === 'A' || data.layout === 'B' || data.layout === 'D') {
+          // 常规单角色舞台
+          const charWrap = document.createElement('div');
+          charWrap.className = 'layer-character-wrap';
+          charWrap.innerHTML = `
+            <div class="character-stage">
+              <img class="character-visual" src="${data.localCharImg}" alt="${data.placardTitleCn}" />
+            </div>
+            <div class="archon-placard">
+              <div class="placard-nation">${data.placardNation}</div>
+              <div class="placard-title-cn">${data.placardTitleCn}</div>
+              <div class="placard-title-en">${data.placardTitleEn}</div>
+            </div>
+          `;
+          const img2d = charWrap.querySelector('.character-visual');
+          this.bindParallaxTilt(charWrap, img2d);
+          container.appendChild(charWrap);
+        }
+
+        // 核心文字叙事区 (无黑框，纯净悬浮排文，依方案①/方案②自适应排版)
+        const narrative = document.createElement('section');
+        narrative.className = 'layer-narrative';
+
+        if (data.layout !== 'C' && data.layout !== 'keqing-vlogs') {
+          narrative.innerHTML = `
+            <div class="badge-group">
+              <span class="badge-pill badge-element">
+                ${getElementBadgeIcon(data.element)}
+                <span>${data.elementName}</span>
+              </span>
+              <span class="badge-pill badge-culture">${data.culturePrototype}</span>
+            </div>
+
+            <div class="title-group">
+              <h1 class="slide-main-title">${data.mainTitle}</h1>
+              <div class="slide-sub-title">${data.subTitle}</div>
+            </div>
+
+            <div class="gold-divider"></div>
+
+            <div class="keypoints-list">
+              ${(data.keypoints || []).map((kp, idx) => `
+                <div class="keypoint-item">
+                  <div class="keypoint-content">
+                    <div class="keypoint-en">${kp.en}</div>
+                    <div class="keypoint-cn">${kp.cn}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            ${data.photoCard ? `
+              <div class="editorial-photo-card">
+                <div class="photo-card-media-wrap">
+                  <img class="photo-card-img" src="${data.photoCard.img}" alt="${data.photoCard.title}" />
+                  <span class="photo-card-badge">${data.photoCard.badge}</span>
+                </div>
+                <div class="photo-card-caption">
+                  <span class="photo-card-title">${data.photoCard.title}</span>
+                  <span class="photo-card-decor">ARCHITECTURAL HERITAGE</span>
+                </div>
+              </div>
+            ` : ''}
+          `;
+        }
+
+        container.appendChild(narrative);
+      }
+
+            bindParallaxTilt(wrap, img) {
+        if (!wrap || !img) return;
+        const handleMove = (clientX, clientY) => {
+          const rect = wrap.getBoundingClientRect();
+          const x = (clientX - rect.left) / rect.width - 0.5;
+          const y = (clientY - rect.top) / rect.height - 0.5;
+          const rotY = Math.max(-16, Math.min(16, x * 26));
+          const rotX = Math.max(-12, Math.min(12, -y * 20));
+          img.style.transform = `rotateY(${rotY}deg) rotateX(${rotX}deg) translateZ(28px)`;
+        };
+
+        wrap.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+        wrap.addEventListener('mouseleave', () => {
+          img.style.transform = 'rotateY(0deg) rotateX(0deg) translateZ(0px)';
+        });
+      }
+
+      // 获取当前换页专属转场名称
+      getTransitionKey(fromIdx, toIdx) {
+        if (fromIdx === 0 && toIdx === 1) return 'trans_01_02_wind';
+        if (fromIdx === 1 && toIdx === 2) return 'trans_02_03_rock';
+        if (fromIdx === 2 && toIdx === 3) return 'trans_03_04_slash';
+        if (fromIdx === 3 && toIdx === 4) return 'trans_04_05_dendro';
+        if (fromIdx === 4 && toIdx === 5) return 'trans_05_06_hydro';
+        if (fromIdx === 5 && toIdx === 6) return 'trans_06_07_pyro';
+        if (fromIdx === 6 && toIdx === 7) return 'trans_07_08_lunar';
+        if (fromIdx === 7 && toIdx === 8) return 'trans_08_09_cryo';
+        if (fromIdx === 8 && toIdx === 9) return 'trans_09_10_opera';
+        if (fromIdx === 9 && toIdx === 10) return 'trans_10_11_celestia';
+        if (fromIdx === 10 && toIdx === 11) return 'trans_11_12_electro';
+        return null;
+      }
+
+      // 核心平滑双缓冲转场调度器 (Strict Double-Buffered Stagger Timeline)
+      goto(nextIndex) {
+        if (this.transitionEngine) {
+          if (this.transitionEngine.isBusy() || nextIndex === this.currentIndex) return;
+          if (nextIndex < 0 || nextIndex >= this.slides.length) return;
+          if (this.blackoutMask && this.blackoutMask.classList.contains('active')) {
+            this.blackoutMask.classList.remove('active');
+          }
+          if (window.genshinAudio) {
+            window.genshinAudio.playSlideSfx(nextIndex);
+          }
+          this.transitionEngine.goto(nextIndex);
+          return;
+        }
+
+        if (this.isLocked || nextIndex === this.currentIndex) return;
+        if (nextIndex < 0 || nextIndex >= this.slides.length) return;
+
+        if (window.genshinAudio) {
+          window.genshinAudio.playSlideSfx(nextIndex);
+        }
+
+        this.isLocked = true;
+        const curIdx = this.currentIndex;
+        const nxtIdx = nextIndex;
+        const curSlide = this.slides[curIdx];
+        const nxtSlide = this.slides[nxtIdx];
+
+        // 1. T+0ms: 在 #viewport-incoming 中预渲染下一页全部结构
+        this.renderSlide(this.viewportIncoming, nxtSlide);
+        this.viewportIncoming.className = `deck-viewport deck-viewport-incoming layout-${nxtSlide.layout} slide-${nxtSlide.id}`;
+        this.viewportIncoming.style.opacity = '0';
+        this.viewportIncoming.style.transform = 'scale(1.05) translateZ(-40px)';
+        this.viewportIncoming.style.transition = 'none';
+
+        const transKey = this.getTransitionKey(curIdx, nxtIdx);
+        const transLayer = transKey ? this.transLayers[transKey] : null;
+
+        // 2. T+50ms: 触发游戏实机专属转场遮罩
+        setTimeout(() => {
+          if (transLayer) {
+            transLayer.classList.add('active');
+          }
+          if (transKey === 'trans_02_03_rock') {
+            this.container.classList.add('screen-shake');
+          }
+        }, 50);
+
+        // 3. T+200ms: #viewport-current 淡出位移，#viewport-incoming 缓动淡入
+        setTimeout(() => {
+          this.viewportCurrent.style.transition = 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease';
+          this.viewportIncoming.style.transition = 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease';
+
+          this.viewportCurrent.style.opacity = '0';
+          this.viewportCurrent.style.transform = nxtIdx > curIdx 
+            ? 'scale(0.96) translate3d(-30px, 0, 0)' 
+            : 'scale(0.96) translate3d(30px, 0, 0)';
+
+          this.viewportIncoming.style.opacity = '1';
+          this.viewportIncoming.style.transform = 'scale(1) translateZ(0)';
+
+          // 更新全局配色
+          document.documentElement.style.setProperty('--active-element', nxtSlide.elementColor);
+          document.documentElement.style.setProperty('--active-rgb', nxtSlide.elementRgb);
+        }, 200);
+
+        // 4. T+450ms: 新页面标题与要点错落动效 (Stagger Delay 80ms)
+        setTimeout(() => {
+          const items = this.viewportIncoming.querySelectorAll('.keypoint-item, .opera-keypoint-card, .vlog-card');
+          items.forEach((item, i) => {
+            item.style.animationDelay = `${i * 80}ms`;
+            item.classList.add('stagger-in');
+          });
+        }, 450);
+
+        // 5. T+750ms: 转场结束，移除遮罩，交换双缓冲指针
+        setTimeout(() => {
+          if (transLayer) {
+            transLayer.classList.remove('active');
+          }
+          this.container.classList.remove('screen-shake');
+
+          // 无缝切换缓冲层指针
+          const temp = this.viewportCurrent;
+          this.viewportCurrent = this.viewportIncoming;
+          this.viewportIncoming = temp;
+
+          this.viewportCurrent.className = `deck-viewport deck-viewport-current layout-${nxtSlide.layout} slide-${nxtSlide.id}`;
+          this.viewportIncoming.className = 'deck-viewport deck-viewport-incoming';
+          this.viewportIncoming.style.opacity = '0';
+          this.viewportIncoming.style.transform = 'scale(1.05) translateZ(-40px)';
+          this.viewportIncoming.innerHTML = '';
+
+          this.currentIndex = nxtIdx;
+          this.updateChrome();
+          this.isLocked = false;
+        }, 750);
+      }
+
+      renderTimeline() {
+        this.timelineRuler.innerHTML = '';
+        this.slides.forEach((slide, idx) => {
+          const tick = document.createElement('div');
+          tick.className = `ruler-tick ${idx === 0 ? 'active' : ''}`;
+          tick.title = `Slide ${idx + 1}: ${slide.mainTitle}`;
+          tick.addEventListener('click', () => this.goto(idx));
+          this.timelineRuler.appendChild(tick);
+        });
+      }
+
+      updateChrome() {
+        const ticks = this.timelineRuler.querySelectorAll('.ruler-tick');
+        ticks.forEach((tick, idx) => {
+          if (idx === this.currentIndex) tick.classList.add('active');
+          else tick.classList.remove('active');
+        });
+        const cur = String(this.currentIndex + 1).padStart(2, '0');
+        const tot = String(this.slides.length).padStart(2, '0');
+        this.slideCounter.textContent = `${cur} / ${tot}`;
+        this.topbarBreadcrumb.textContent = `${cur} · ${this.slides[this.currentIndex].subTitle.split('·')[0].trim()}`;
+
+        // 同步更新悬浮抽屉中的演讲口播提示
+        if (this.speakerCueText && this.slides[this.currentIndex]) {
+          this.speakerCueText.textContent = this.slides[this.currentIndex].teleprompter || '';
+        }
+      }
+
+      bindEvents() {
+        window.addEventListener('keydown', (e) => {
+          const key = e.key;
+          const code = e.keyCode || e.which;
+
+          // 1. 翻页笔“下一页”信号支持：PageDown, ArrowRight, ArrowDown, Space, Enter, N/n
+          if (
+            key === 'ArrowRight' || key === 'PageDown' || key === 'ArrowDown' ||
+            key === ' ' || key === 'Enter' || key === 'n' || key === 'N' ||
+            code === 34 || code === 39 || code === 40 || code === 32 || code === 13 || code === 78
+          ) {
+            e.preventDefault();
+            this.goto(this.currentIndex + 1);
+          }
+          // 2. 翻页笔“上一页”信号支持：PageUp, ArrowLeft, ArrowUp, Backspace, P/p
+          else if (
+            key === 'ArrowLeft' || key === 'PageUp' || key === 'ArrowUp' ||
+            key === 'Backspace' || key === 'p' || key === 'P' ||
+            code === 33 || code === 37 || code === 38 || code === 8 || code === 80
+          ) {
+            e.preventDefault();
+            this.goto(this.currentIndex - 1);
+          }
+          // 3. 翻页笔“黑屏/瞬黑”信号支持：b, B, Period (.), 句点键
+          else if (key === 'b' || key === 'B' || key === '.' || code === 190 || code === 66) {
+            e.preventDefault();
+            this.blackoutMask.classList.toggle('active');
+          }
+          // 4. 翻页笔“全屏放映”信号支持：F5, f, F
+          else if (key === 'F5' || key === 'f' || key === 'F' || code === 116 || code === 70) {
+            e.preventDefault();
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+              document.exitFullscreen().catch(() => {});
+            }
+          }
+          // 5. 演讲提词器抽屉：t, T
+          else if (key === 't' || key === 'T') {
+            this.toggleSpeakerCue();
+          }
+          // 6. 背景音乐静音/开启快捷键：m, M
+          else if (key === 'm' || key === 'M' || code === 77) {
+            e.preventDefault();
+            if (window.genshinAudio) {
+              window.genshinAudio.toggleBgm();
+            }
+          }
+          // 7. 退出全屏/关闭抽屉：Escape
+          else if (key === 'Escape') {
+            this.closeSpeakerCue();
+          }
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => this.goto(this.currentIndex - 1));
+        document.getElementById('btn-next').addEventListener('click', () => this.goto(this.currentIndex + 1));
+        document.getElementById('touch-btn-prev').addEventListener('click', () => this.goto(this.currentIndex - 1));
+        document.getElementById('touch-btn-next').addEventListener('click', () => this.goto(this.currentIndex + 1));
+
+        if (this.speakerCueBtn) {
+          this.speakerCueBtn.addEventListener('click', () => this.toggleSpeakerCue());
+        }
+        if (this.speakerCueClose) {
+          this.speakerCueClose.addEventListener('click', () => this.closeSpeakerCue());
+        }
+
+        const audioBtn = document.getElementById('audio-toggle-btn');
+        if (audioBtn) {
+          audioBtn.addEventListener('click', () => {
+            if (window.genshinAudio) {
+              window.genshinAudio.toggleBgm();
+            }
+          });
+        }
+
+        // 触控滑动换页
+        let startX = 0, startY = 0;
+        window.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 0) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchend', (e) => {
+          if (e.changedTouches.length > 0) {
+            const dx = e.changedTouches[0].clientX - startX;
+            const dy = e.changedTouches[0].clientY - startY;
+            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+              if (dx < 0) this.goto(this.currentIndex + 1);
+              else this.goto(this.currentIndex - 1);
+            }
+          }
+        }, { passive: true });
+      }
+    }
+
+    // 页面加载就绪后初始化课件
+    document.addEventListener('DOMContentLoaded', () => {
+      window.deckInstance = new PresentationEngine(SLIDES_DATA);
+    });
+  </script>
+</body>
+</html>
